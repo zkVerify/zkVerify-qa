@@ -26,7 +26,9 @@ jobs:
         id: run-tests
         run: |
           TEST_OUTPUT=$(docker run --rm -e PRIVATE_KEY=${{ secrets.QA_PRIVATE_KEY }} rpc-tests:latest 2>&1)
+          echo "Docker Test Output Start"
           echo "$TEST_OUTPUT"
+          echo "Docker Test Output End"
           echo "test-output=$TEST_OUTPUT" >> $GITHUB_ENV
         continue-on-error: true
 
@@ -70,7 +72,7 @@ jobs:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "${{ env.OVERALL_STATUS_EMOJI }} *NH-CORE BUILD STATUS:* ${{ env.OVERALL_STATUS }} ${{ env.OVERALL_STATUS_EMOJI }}\n*Test Results:*\n*Passed:* ${{ env.PASSED }}\n*Failed:* ${{ env.FAILED }}\n*Skipped:* ${{ env.SKIPPED }}"
+                    "text": "${{ env.OVERALL_STATUS_EMOJI }} *zkVerify RPC TEST STATUS:* ${{ env.OVERALL_STATUS }} ${{ env.OVERALL_STATUS_EMOJI }}\n*Test Results:*\n*Passed:* ${{ env.PASSED }}\n*Failed:* ${{ env.FAILED }}\n*Skipped:* ${{ env.SKIPPED }}"
                   }
                 }
               ]
