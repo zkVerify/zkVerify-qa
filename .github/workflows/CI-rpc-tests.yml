@@ -5,7 +5,7 @@ on:
     - cron: '0 15 * * *'
   workflow_dispatch:
   pull_request:
-  
+
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
@@ -23,43 +23,25 @@ jobs:
           docker build -t rpc-tests:latest .
 
       - name: Run RPC tests
-        id: run-tests
         run: |
           TEST_OUTPUT=$(docker run --rm -e PRIVATE_KEY=${{ secrets.QA_PRIVATE_KEY }} rpc-tests:latest 2>&1)
-          echo "Docker Test Output Start"
           echo "$TEST_OUTPUT"
-          echo "Docker Test Output End"
-          echo "test-output=$TEST_OUTPUT" >> $GITHUB_ENV
-        continue-on-error: true
-
-      - name: Parse Test Results
-        id: parse-results
-        run: |
-          TEST_OUTPUT="${{ env.test-output }}"
           PASSED=$(echo "$TEST_OUTPUT" | grep -oP 'Tests:\s+\K\d+(?=\s+passed)')
           FAILED=$(echo "$TEST_OUTPUT" | grep -oP 'Tests:\s+\d+\s+passed,\s+\K\d+(?=\s+failed)')
           SKIPPED=$(echo "$TEST_OUTPUT" | grep -oP 'Tests:\s+\d+\s+passed,\s+\d+\s+failed,\s+\K\d+(?=\s+skipped)')
-          
-          if [ -z "$FAILED" ]; then
-            FAILED=0
-          fi
-          if [ -z "$SKIPPED" ]; then
-            SKIPPED=0
-          fi
-
-          if [ "$FAILED" -eq 0 ]; then
+          echo "PASSED=$PASSED" >> $GITHUB_ENV
+          echo "FAILED=$FAILED" >> $GITHUB_ENV
+          echo "SKIPPED=$SKIPPED" >> $GITHUB_ENV
+          if [ -z "$FAILED" ] || [ "$FAILED" -eq 0 ]; then
             OVERALL_STATUS="success"
             OVERALL_STATUS_EMOJI=":large_green_circle:"
           else
             OVERALL_STATUS="failure"
             OVERALL_STATUS_EMOJI=":red_circle:"
           fi
-
-          echo "PASSED=$PASSED" >> $GITHUB_ENV
-          echo "FAILED=$FAILED" >> $GITHUB_ENV
-          echo "SKIPPED=$SKIPPED" >> $GITHUB_ENV
           echo "OVERALL_STATUS=$OVERALL_STATUS" >> $GITHUB_ENV
           echo "OVERALL_STATUS_EMOJI=$OVERALL_STATUS_EMOJI" >> $GITHUB_ENV
+        continue-on-error: true
 
       - name: Send Slack Notification
         if: always()
