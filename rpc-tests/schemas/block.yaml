@@ -1,0 +1,50 @@
+GetBlockResponse:
+  title: Block Response
+  type: object
+  required:
+    - block
+    - justifications
+  properties:
+    block:
+      $ref: '#/components/schemas/Block'
+    justifications:
+      type: array
+      items:
+          $ref: '#/components/schemas/hash32'
+
+Block:
+  title: Block object
+  type: object
+  required:
+    - header
+    - extrinsics
+  properties:
+    header:
+      $ref: '#/components/schemas/Header'
+    extrinsics:
+      type: array
+      items:
+        $ref: '#/components/schemas/unknownHex'
+
+Header:
+  title: Block Header
+  type: object
+  properties:
+    parentHash:
+      $ref: '#/components/schemas/hash32'
+    number:
+      $ref: '#/components/schemas/uint'
+    stateRoot:
+      $ref: '#/components/schemas/hash32'
+    extrinsicsRoot:
+      $ref: '#/components/schemas/hash32'
+    digest:
+      $ref: '#/components/schemas/Digest'
+
+Digest:
+  type: object
+  properties:
+    logs:
+      type: array
+      items:
+        $ref: '#/components/schemas/unknownHex'

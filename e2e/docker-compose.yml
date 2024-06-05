@@ -1,0 +1,58 @@
+
+services:
+  anvil-node:
+    platform: linux/amd64
+    build:
+      context: ./services
+      dockerfile: anvil/Dockerfile
+    volumes:
+      - contract-data:/data
+    ports:
+      - "8545:8545"
+
+  local_node:
+    image: horizenlabs/zkverify:latest
+    env_file:
+      - ./services/nh-core/docker/resources/envs/.env.local
+    ports:
+      - "9944:9944"
+      - "30333:30333"
+
+  node_alice:
+    image: horizenlabs/zkverify:latest
+    env_file:
+      - ./services/nh-core/docker/resources/envs/.env.alice
+
+  node_bob:
+    image: horizenlabs/zkverify:latest
+    env_file:
+      - ./services/nh-core/docker/resources/envs/.env.bob
+    volumes:
+      - ./services/nh-core/docker/resources/deploy:/data/config
+
+  attestation-bot:
+    build:
+      context: ./services/nh-attestation-bot
+      dockerfile: Dockerfile
+    volumes:
+      - contract-data:/data
+      - ./start_bot.sh:/app/start_bot.sh
+    ports:
+      - "3000:3000"
+    depends_on:
+      - anvil-node
+      - local_node
+      - node_alice
+      - node_bob
+    environment:
+      NH_ATTEST_BOT_NH_WS_PROVIDER_URL: "ws://local_node:9944"
+      NH_ATTEST_BOT_ETH_JSON_RPC_PROVIDER_URL: "http://anvil-node:8545"
+      NH_ATTEST_BOT_POLL_INTERVAL: "500"
+      NH_ATTEST_BOT_ETH_MAX_RETRIES: "10"
+      NH_ATTEST_BOT_ETH_RETRY_INTERVAL: "60000"
+      NH_ATTEST_BOT_ETH_RETRY_GAS_INCREASE_PERCENTAGE: "30"
+      NH_ATTEST_BOT_LOG_LEVEL: "debug"
+    command: ["/bin/sh", "/app/start_bot.sh"]
+
+volumes:
+  contract-data:

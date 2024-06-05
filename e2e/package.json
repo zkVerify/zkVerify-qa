@@ -1,0 +1,20 @@
+{
+  "name": "nh e2e",
+  "version": "1.0.0",
+  "scripts": {
+    "test": "jest"
+  },
+  "jest": {
+    "verbose": true
+  },
+  "author": "Horizen Labs",
+  "license": "ISC",
+  "dependencies": {
+    "@polkadot/api": "^11.0.2",
+    "dotenv": "^16.4.5",
+    "web3": "^4.8.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}
