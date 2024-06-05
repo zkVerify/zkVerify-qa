@@ -25,15 +25,15 @@ jobs:
       - name: Run RPC tests
         id: run-tests
         run: |
-          TEST_OUTPUT=$(docker run --rm -e PRIVATE_KEY=${{ secrets.QA_PRIVATE_KEY }} rpc-tests:latest)
+          TEST_OUTPUT=$(docker run --rm -e PRIVATE_KEY=${{ secrets.QA_PRIVATE_KEY }} rpc-tests:latest 2>&1)
           echo "$TEST_OUTPUT"
-          echo "::set-output name=test-output::$TEST_OUTPUT"
+          echo "test-output=$TEST_OUTPUT" >> $GITHUB_ENV
         continue-on-error: true
 
       - name: Parse Test Results
         id: parse-results
         run: |
-          TEST_OUTPUT="${{ steps.run-tests.outputs.test-output }}"
+          TEST_OUTPUT="${{ env.test-output }}"
           PASSED=$(echo "$TEST_OUTPUT" | grep -oP 'Tests:\s+\K\d+(?=\s+passed)')
           FAILED=$(echo "$TEST_OUTPUT" | grep -oP 'Tests:\s+\d+\s+passed,\s+\K\d+(?=\s+failed)')
           SKIPPED=$(echo "$TEST_OUTPUT" | grep -oP 'Tests:\s+\d+\s+passed,\s+\d+\s+failed,\s+\K\d+(?=\s+skipped)')
