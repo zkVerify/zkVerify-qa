@@ -28,14 +28,14 @@ jobs:
           docker run --rm -e PRIVATE_KEY=${{ secrets.QA_PRIVATE_KEY }} -v ${{ github.workspace }}/rpc-tests/reports:/usr/src/app/reports rpc-tests:latest 2>&1 | tee rpc-tests/reports/test_output.txt
         continue-on-error: true
 
-      - name: Verify test output file exists
-        run: |
-          ls -alh rpc-tests/reports
-          cat rpc-tests/reports/test_output.txt
+      - name: Display Test Output Content
+        working-directory: ./rpc-tests
+        run: cat reports/test_output.txt
 
       - name: Parse Test Results
+        working-directory: ./rpc-tests
         run: |
-          TEST_OUTPUT=$(cat rpc-tests/reports/test_output.txt)
+          TEST_OUTPUT=$(cat reports/test_output.txt)
           PASSED=$(echo "$TEST_OUTPUT" | grep -oP 'Tests:\s+\K\d+(?=\s+passed)')
           FAILED=$(echo "$TEST_OUTPUT" | grep -oP 'Tests:\s+\d+\s+passed,\s+\K\d+(?=\s+failed)')
           SKIPPED=$(echo "$TEST_OUTPUT" | grep -oP 'Tests:\s+\d+\s+passed,\s+\d+\s+failed,\s+\K\d+(?=\s+skipped)')
@@ -51,7 +51,6 @@ jobs:
           fi
           echo "OVERALL_STATUS=$OVERALL_STATUS" >> $GITHUB_ENV
           echo "OVERALL_STATUS_EMOJI=$OVERALL_STATUS_EMOJI" >> $GITHUB_ENV
-        working-directory: ./rpc-tests
 
       - name: Send Slack Notification
         if: always()
