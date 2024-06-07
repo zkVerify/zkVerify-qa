@@ -36,12 +36,26 @@ jobs:
       - name: Parse Test Results
         run: |
           TEST_OUTPUT=$(cat ${{ github.workspace }}/rpc-tests/reports/test_output.txt)
+          echo "Test Output:"
+          echo "$TEST_OUTPUT"
+          
           PASSED=$(echo "$TEST_OUTPUT" | grep -oP 'Tests:\s+\K\d+(?=\s+passed)')
           FAILED=$(echo "$TEST_OUTPUT" | grep -oP 'Tests:\s+\d+\s+passed,\s+\K\d+(?=\s+failed)')
           SKIPPED=$(echo "$TEST_OUTPUT" | grep -oP 'Tests:\s+\d+\s+passed,\s+\d+\s+failed,\s+\K\d+(?=\s+skipped)')
+
+          echo "Parsed Results:"
+          echo "PASSED: $PASSED"
+          echo "FAILED: $FAILED"
+          echo "SKIPPED: $SKIPPED"
+
+          PASSED=${PASSED:-0}
+          FAILED=${FAILED:-0}
+          SKIPPED=${SKIPPED:-0}
+
           echo "PASSED=$PASSED" >> $GITHUB_ENV
           echo "FAILED=$FAILED" >> $GITHUB_ENV
           echo "SKIPPED=$SKIPPED" >> $GITHUB_ENV
+
           if [ -z "$FAILED" ] || [ "$FAILED" -eq 0 ]; then
             OVERALL_STATUS="success"
             OVERALL_STATUS_EMOJI=":large_green_circle:"
@@ -49,8 +63,13 @@ jobs:
             OVERALL_STATUS="failure"
             OVERALL_STATUS_EMOJI=":red_circle:"
           fi
+
           echo "OVERALL_STATUS=$OVERALL_STATUS" >> $GITHUB_ENV
           echo "OVERALL_STATUS_EMOJI=$OVERALL_STATUS_EMOJI" >> $GITHUB_ENV
+
+          if [ "$OVERALL_STATUS" == "failure" ]; then
+            exit 1
+          fi
 
       - name: Send Slack Notification
         if: always()
