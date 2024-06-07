@@ -36,27 +36,30 @@ jobs:
       - name: Parse Test Results
         run: |
           TEST_OUTPUT=$(cat ${{ github.workspace }}/rpc-tests/reports/test_output.txt)
-          echo "Test Output:"
-          echo "$TEST_OUTPUT"
           
-          PASSED=$(echo "$TEST_OUTPUT" | grep -oP 'Tests:\s+\K\d+(?=\s+passed)')
-          FAILED=$(echo "$TEST_OUTPUT" | grep -oP 'Tests:\s+\d+\s+passed,\s+\K\d+(?=\s+failed)')
-          SKIPPED=$(echo "$TEST_OUTPUT" | grep -oP 'Tests:\s+\d+\s+passed,\s+\d+\s+failed,\s+\K\d+(?=\s+skipped)')
+          PASSED=0
+          FAILED=0
+          SKIPPED=0
+          TOTAL=0
 
-          echo "Parsed Results:"
-          echo "PASSED: $PASSED"
-          echo "FAILED: $FAILED"
-          echo "SKIPPED: $SKIPPED"
+          if echo "$TEST_OUTPUT" | grep -q 'Tests:'; then
+              PASSED=$(echo "$TEST_OUTPUT" | awk '/Tests:/ {for(i=1;i<=NF;i++) if($i=="passed,") print $(i-1)}')
+              FAILED=$(echo "$TEST_OUTPUT" | awk '/Tests:/ {for(i=1;i<=NF;i++) if($i=="failed,") print $(i-1)}')
+              SKIPPED=$(echo "$TEST_OUTPUT" | awk '/Tests:/ {for(i=1;i<=NF;i++) if($i=="skipped,") print $(i-1)}')
+              TOTAL=$(echo "$TEST_OUTPUT" | awk '/Tests:/ {for(i=1;i<=NF;i++) if($i=="total") print $(i-1)}')
+          fi
 
           PASSED=${PASSED:-0}
           FAILED=${FAILED:-0}
           SKIPPED=${SKIPPED:-0}
+          TOTAL=${TOTAL:-0}
 
           echo "PASSED=$PASSED" >> $GITHUB_ENV
           echo "FAILED=$FAILED" >> $GITHUB_ENV
           echo "SKIPPED=$SKIPPED" >> $GITHUB_ENV
+          echo "TOTAL=$TOTAL" >> $GITHUB_ENV
 
-          if [ -z "$FAILED" ] || [ "$FAILED" -eq 0 ]; then
+          if [ "$FAILED" -eq 0 ]; then
             OVERALL_STATUS="success"
             OVERALL_STATUS_EMOJI=":large_green_circle:"
           else
@@ -82,7 +85,7 @@ jobs:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "${{ env.OVERALL_STATUS_EMOJI }} *zkVerify RPC TEST STATUS:* ${{ env.OVERALL_STATUS }} ${{ env.OVERALL_STATUS_EMOJI }}\n*Test Results:*\n*Passed:* ${{ env.PASSED }}\n*Failed:* ${{ env.FAILED }}\n*Skipped:* ${{ env.SKIPPED }}"
+                    "text": "${{ env.OVERALL_STATUS_EMOJI }} *zkVerify RPC TEST STATUS:* ${{ env.OVERALL_STATUS }} ${{ env.OVERALL_STATUS_EMOJI }}\n*Test Results:*\n*Passed:* ${{ env.PASSED }}\n*Failed:* ${{ env.FAILED }}\n*Skipped:* ${{ env.SKIPPED }}\n*Total:* ${{ env.TOTAL }}"
                   }
                 }
               ]
