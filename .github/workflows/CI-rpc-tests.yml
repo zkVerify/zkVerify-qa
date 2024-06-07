@@ -30,9 +30,6 @@ jobs:
           docker run --rm -e PRIVATE_KEY=${{ secrets.QA_PRIVATE_KEY }} -v ${{ github.workspace }}/rpc-tests/reports:/usr/src/app/reports rpc-tests:latest 2>&1 | tee rpc-tests/reports/test_output.txt
         continue-on-error: true
 
-      - name: Display Test Output Content
-        run: cat ${{ github.workspace }}/rpc-tests/reports/test_output.txt
-
       - name: Parse Test Results
         run: |
           TEST_OUTPUT=$(cat ${{ github.workspace }}/rpc-tests/reports/test_output.txt)
