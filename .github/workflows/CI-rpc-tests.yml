@@ -82,7 +82,7 @@ jobs:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "${{ env.OVERALL_STATUS_EMOJI }} *zkVerify RPC TEST STATUS:* ${{ env.OVERALL_STATUS }} ${{ env.OVERALL_STATUS_EMOJI }}\n*Test Results:*\n*Passed:* ${{ env.PASSED }}\n*Failed:* ${{ env.FAILED }}\n*Skipped:* ${{ env.SKIPPED }}\n*Total:* ${{ env.TOTAL }}"
+                    "text": "${{ env.OVERALL_STATUS_EMOJI }} *zkVerify RPC TEST STATUS:* ${{ env.OVERALL_STATUS }} ${{ env.OVERALL_STATUS_EMOJI }}\n*Test Results:*\n*Passed:* ${{ env.PASSED }}\n*Failed:* ${{ env.FAILED }}\n*Skipped:* ${{ env.SKIPPED }}\n*Total:* ${{ env.TOTAL }}\n\n*Build URL:* <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|Click here to view the build>"
                   }
                 }
               ]
