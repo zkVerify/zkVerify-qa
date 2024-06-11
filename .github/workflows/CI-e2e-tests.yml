@@ -1,0 +1,75 @@
+name: zkVerify E2E Tests
+
+on:
+  schedule:
+    - cron: '0 18 * * *'
+  workflow_dispatch:
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Run setup script
+        run: |
+          cd e2e-tests
+          ./setup.sh --fetch-latest --rebuild
+
+      - name: Install npm dependencies
+        run: |
+          cd e2e-tests
+          npm install
+
+      - name: Set up Docker containers
+        run: |
+          cd e2e-tests
+          docker-compose down -v
+          docker-compose build --no-cache
+          docker-compose up -d
+
+      - name: Wait for Docker containers to be ready
+        run: |
+          sleep 60
+          while true; do
+            if docker-compose exec -T local_node curl -s http://localhost:9944 -o /dev/null; then
+              echo "Docker containers are ready."
+              break
+            else
+              echo "Waiting for Docker containers to be ready..."
+              sleep 10
+            fi
+          done
+
+      - name: Get contract data
+        run: |
+          while true; do
+            if [ -f e2e-tests/services/nh-core/docker/resources/deploy/contract_data.txt ]; then
+              CONTRACT_ADDRESS=$(sed -n '1p' e2e-tests/services/nh-core/docker/resources/deploy/contract_data.txt | cut -d ' ' -f 3)
+              PRIVATE_KEY=$(sed -n '2p' e2e-tests/services/nh-core/docker/resources/deploy/contract_data.txt | cut -d ' ' -f 3)
+              if [ ! -z "$CONTRACT_ADDRESS" ] && [ ! -z "$PRIVATE_KEY" ]; then
+                echo "Contract data is ready."
+                echo "NH_CONTRACT=$CONTRACT_ADDRESS" >> $GITHUB_ENV
+                echo "PRIVATE_KEY=$PRIVATE_KEY" >> $GITHUB_ENV
+                break
+              fi
+            fi
+            echo "Waiting for contract data..."
+            sleep 10
+          done
+
+      - name: Run E2E tests
+        run: |
+          cd e2e-tests
+          WEBSOCKET=ws://127.0.0.1:9944 PRIVATE_KEY=${{ secrets.PRIVATE_KEY }} npm run test

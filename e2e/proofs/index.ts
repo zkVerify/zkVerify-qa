@@ -1,12 +1,10 @@
-export interface Proofs {
-    [key: string]: {
-        pallet: string;
-        validProof: string;
-        invalidProof: string;
-    };
+export interface Proof {
+    pallet: string;
+    validProof: string;
+    invalidProof: string;
 }
 
-export const proofs: Proofs = {
+export const proofs: Record<string, Proof> = {
     fflonk: {
         pallet: 'settlementFFlonkPallet',
         validProof: process.env.FFLONK_PROOF as string,
