@@ -3,7 +3,7 @@ import { KeyringPair } from '@polkadot/keyring/types';
 import { SubmittableExtrinsic } from '@polkadot/api/types';
 import { handleEvents, waitForAttestationId, waitForNewAttestation } from '../helpers';
 
-const clearResources = (timerRefs: { interval: NodeJS.Timeout | null, timeout: NodeJS.Timeout | null }) => {
+export const clearResources = (timerRefs: { interval: NodeJS.Timeout | null, timeout: NodeJS.Timeout | null }) => {
     if (timerRefs.interval) clearInterval(timerRefs.interval);
     if (timerRefs.timeout) clearTimeout(timerRefs.timeout);
 };
@@ -32,11 +32,12 @@ const handleFinalized = async (
     api: ApiPromise,
     startTime: number
 ): Promise<string> => {
-    console.log(`Valid ${proofType} Transaction finalized (elapsed time: ${(Date.now() - startTime) / 1000} seconds)`);
+    const validityPrefix = expectsError ? "Invalid" : "Valid";
+    console.log(`${validityPrefix} ${proofType} Transaction finalized (elapsed time: ${(Date.now() - startTime) / 1000} seconds)`);
 
     if (dispatchError) {
         if (expectsError) {
-            console.log(`Valid ${proofType} Transaction failed as expected with error.`);
+            console.log(`Invalid ${proofType} Transaction failed as expected with error.`);
             return 'failed as expected';
         } else {
             throw new Error(`Unexpected error: ${dispatchError.toString()}`);
@@ -81,7 +82,7 @@ export const handleTransaction = async (
         timerRefs.timeout = setTimeout(() => {
             clearResources(timerRefs);
             reject(new Error(`Test timed out waiting for ${validityPrefix} ${proofType} proof transaction finalization`));
-        }, 60000);
+        }, 60000) as NodeJS.Timeout;
 
         submitProof.signAndSend(account, async ({ events, status, dispatchError }) => {
             try {
@@ -90,8 +91,8 @@ export const handleTransaction = async (
 
                     timerRefs.interval = setInterval(() => {
                         let elapsed = (Date.now() - startTime) / 1000;
-                        console.log(`Waiting for valid ${proofType} transaction to finalize... (elapsed time: ${elapsed} seconds)`);
-                    }, 5000);
+                        console.log(`Waiting for ${validityPrefix} ${proofType} transaction to finalize... (elapsed time: ${elapsed} seconds)`);
+                    }, 5000) as NodeJS.Timeout;
                 }
 
                 if (status.isFinalized) {

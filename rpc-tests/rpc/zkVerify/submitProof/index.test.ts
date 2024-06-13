@@ -4,7 +4,7 @@ import { Keyring } from '@polkadot/keyring';
 import { describe, test, expect, beforeAll, afterAll, beforeEach, afterEach } from '@jest/globals';
 import { proofs } from '../../../proofs';
 import { createApi, waitForNodeToSync } from '../../../helpers';
-import { handleTransaction } from '../../../transactions';
+import { handleTransaction, clearResources } from '../../../transactions';
 
 const requiredEnvVariables: string[] = ['WEBSOCKET', 'PRIVATE_KEY'];
 
@@ -27,8 +27,7 @@ describe('Proof Submission and Event Handling', () => {
     }, 30000);
 
     afterAll(async () => {
-        if (timerRefs.interval) clearInterval(timerRefs.interval);
-        if (timerRefs.timeout) clearTimeout(timerRefs.timeout);
+        clearResources(timerRefs);
         if (api) await api.disconnect();
         if (provider) await provider.disconnect();
     });
@@ -38,11 +37,17 @@ describe('Proof Submission and Event Handling', () => {
     });
 
     afterEach(() => {
-        if (timerRefs.interval) clearInterval(timerRefs.interval);
-        if (timerRefs.timeout) clearTimeout(timerRefs.timeout);
+        clearResources(timerRefs);
     });
 
     const proofTypes = Object.entries(proofs);
+
+    const submitProof = (api: ApiPromise, pallet: string, proofType: string, proof: any) => {
+        if (proofType === 'fflonk') {
+            return api.tx[pallet].submitProof(proof, null);
+        }
+        return api.tx[pallet].submitProof(proof);
+    };
 
     test.each(proofTypes)(
         'should successfully accept a %s proof, emit a NewAttestation event',
@@ -51,11 +56,11 @@ describe('Proof Submission and Event Handling', () => {
             const keyring = new Keyring({ type: 'sr25519' });
             const account = keyring.addFromUri(process.env.PRIVATE_KEY as string);
 
-            const submitProof = api.tx[pallet].submitProof(validProof);
-            const result = await handleTransaction(api, submitProof, account, proofType.toString(), startTime, false, timerRefs);
+            const transaction = submitProof(api, pallet, proofType.toString(), validProof);
+            const result = await handleTransaction(api, transaction, account, proofType.toString(), startTime, false, timerRefs);
             expect(result).toBe('succeeded');
         },
-        300000
+        150000
     );
 
     test.each(proofTypes)(
@@ -65,8 +70,8 @@ describe('Proof Submission and Event Handling', () => {
             const keyring = new Keyring({ type: 'sr25519' });
             const account = keyring.addFromUri(process.env.PRIVATE_KEY as string);
 
-            const submitProof = api.tx[pallet].submitProof(invalidProof);
-            const result = await handleTransaction(api, submitProof, account, proofType.toString(), startTime, true, timerRefs);
+            const transaction = submitProof(api, pallet, proofType.toString(), invalidProof);
+            const result = await handleTransaction(api, transaction, account, proofType.toString(), startTime, true, timerRefs);
             expect(result).toBe('failed as expected');
         },
         60000

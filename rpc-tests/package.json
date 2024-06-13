@@ -5,8 +5,8 @@
   "author": "Horizen Labs <info@horizenlabs.io>",
   "main": "index",
   "scripts": {
-    "test-local": "cp .env.local .env && jest --config=jest.config.local.js",
-    "test-testnet": "cp .env.testnet .env && jest --config=jest.config.testnet.js --forceExit"
+    "test-local": "cp .env.local .env && jest --config=jest.config.local.js --verbose",
+    "test-testnet": "cp .env.testnet .env && jest --config=jest.config.testnet.js --forceExit --verbose"
   },
   "jest": {
     "transform": {
