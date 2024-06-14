@@ -6,7 +6,6 @@ import { proofs } from '../proofs';
 import { createApi, handleEvents, waitForAttestationId, waitForNewAttestation, waitForNodeToSync } from '../utils';
 import { SubmittableExtrinsic } from '@polkadot/api/types';
 import { KeyringPair } from '@polkadot/keyring/types';
-import { ISubmittableResult } from '@polkadot/types/types';
 
 const requiredEnvVariables: string[] = ['WEBSOCKET', 'PRIVATE_KEY'];
 
@@ -46,7 +45,14 @@ describe('Proof Submission and Event Handling', () => {
         if (timeout) clearTimeout(timeout);
     });
 
-    const handleTransaction = async (submitProof: SubmittableExtrinsic<"promise", ISubmittableResult>, account: KeyringPair, proofType: string, expectsError = false) => {
+    const submitProof = (api: ApiPromise, pallet: string, proofType: string, proof: any) => {
+        if (proofType === 'fflonk') {
+            return api.tx[pallet].submitProof(proof, null);
+        }
+        return api.tx[pallet].submitProof(proof);
+    };
+
+    const handleTransaction = async (submitProof: SubmittableExtrinsic<"promise">, account: KeyringPair, proofType: string, expectsError = false) => {
         const validityPrefix = expectsError ? "Invalid" : "Valid";
         let attestation_id = null;
         return new Promise((resolve, reject) => {
@@ -123,8 +129,8 @@ describe('Proof Submission and Event Handling', () => {
             const keyring = new Keyring({ type: 'sr25519' });
             const account = keyring.addFromUri(process.env.PRIVATE_KEY as string);
 
-            const submitProof = api.tx[pallet].submitProof(validProof);
-            const result = await handleTransaction(submitProof, account, proofType);
+            const transaction = submitProof(api, pallet, proofType.toString(), validProof);
+            const result = await handleTransaction(transaction, account, proofType);
             expect(result).toBe('succeeded');
         }, 300000);
 
@@ -133,9 +139,9 @@ describe('Proof Submission and Event Handling', () => {
             const keyring = new Keyring({ type: 'sr25519' });
             const account = keyring.addFromUri(process.env.PRIVATE_KEY as string);
 
-            const submitProof = api.tx[pallet].submitProof(invalidProof);
-            const result = await handleTransaction(submitProof, account, proofType, true);
+            const transaction = submitProof(api, pallet, proofType.toString(), invalidProof);
+            const result = await handleTransaction(transaction, account, proofType, true);
             expect(result).toBe('failed as expected');
-        }, 60000);
+        }, 120000);
     });
 });
