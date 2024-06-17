@@ -45,11 +45,8 @@ describe('Proof Submission and Event Handling', () => {
         if (timeout) clearTimeout(timeout);
     });
 
-    const submitProof = (api: ApiPromise, pallet: string, proofType: string, proof: any) => {
-        if (proofType === 'fflonk') {
-            return api.tx[pallet].submitProof(proof, null);
-        }
-        return api.tx[pallet].submitProof(proof);
+    const submitProof = (api: ApiPromise, pallet: string, proofType: string, proof: any, params: any[] = []) => {
+        return api.tx[pallet].submitProof(proof, ...params);
     };
 
     const handleTransaction = async (submitProof: SubmittableExtrinsic<"promise">, account: KeyringPair, proofType: string, expectsError = false) => {
@@ -61,7 +58,7 @@ describe('Proof Submission and Event Handling', () => {
                 if (interval) clearInterval(interval);
                 reject(new Error(`Test timed out waiting for ${validityPrefix} ${proofType} proof transaction finalization`));
             }, 60000);
-    
+
             submitProof.signAndSend(account, async ({ events, status, dispatchError }) => {
                 if (status.isInBlock) {
                     console.log(`${validityPrefix} ${proofType} Transaction included in block (elapsed time: ${(Date.now() - startTime) / 1000} seconds)`);
@@ -71,13 +68,13 @@ describe('Proof Submission and Event Handling', () => {
                             console.log(`${validityPrefix} ${proofType} Proof Verified:\n  - Attestation Id: ${attestation_id}\n  - Proof Leaf: ${data[0].toString()}`);
                         }
                     });
-    
+
                     interval = setInterval(() => {
                         let elapsed = (Date.now() - startTime) / 1000;
                         console.log(`Waiting for ${validityPrefix} ${proofType} transaction to finalize... (elapsed time: ${elapsed} seconds)`);
                     }, 5000);
                 }
-    
+
                 if (status.isFinalized) {
                     if (interval) clearInterval(interval);
                     clearTimeout(timeout);
@@ -123,13 +120,13 @@ describe('Proof Submission and Event Handling', () => {
         });
     };
 
-    Object.entries(proofs).forEach(([proofType, { pallet, validProof, invalidProof }]) => {
+    Object.entries(proofs).forEach(([proofType, { pallet, validProof, invalidProof, params = [] }]) => {
         test(`should successfully accept a ${proofType} proof, emit a NewAttestation event`, async () => {
             console.log(`Submitting valid ${proofType} proof...`);
             const keyring = new Keyring({ type: 'sr25519' });
             const account = keyring.addFromUri(process.env.PRIVATE_KEY as string);
 
-            const transaction = submitProof(api, pallet, proofType.toString(), validProof);
+            const transaction = submitProof(api, pallet, proofType.toString(), validProof, params);
             const result = await handleTransaction(transaction, account, proofType);
             expect(result).toBe('succeeded');
         }, 300000);
@@ -139,7 +136,7 @@ describe('Proof Submission and Event Handling', () => {
             const keyring = new Keyring({ type: 'sr25519' });
             const account = keyring.addFromUri(process.env.PRIVATE_KEY as string);
 
-            const transaction = submitProof(api, pallet, proofType.toString(), invalidProof);
+            const transaction = submitProof(api, pallet, proofType.toString(), invalidProof, params);
             const result = await handleTransaction(transaction, account, proofType, true);
             expect(result).toBe('failed as expected');
         }, 120000);
