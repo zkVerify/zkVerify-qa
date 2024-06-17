@@ -6,7 +6,7 @@
   "main": "index",
   "scripts": {
     "test-local": "cp .env.local .env && jest --config=jest.config.local.js",
-    "test-testnet": "cp .env.testnet .env && jest --config=jest.config.testnet.js --forceExit"
+    "test-testnet": "cp .env.testnet .env && jest --config=jest.config.testnet.js --forceExit --verbose"
   },
   "jest": {
     "transform": {

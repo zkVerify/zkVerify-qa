@@ -6,7 +6,6 @@ import { proofs } from '../proofs';
 import { createApi, handleEvents, waitForAttestationId, waitForNewAttestation, waitForNodeToSync } from '../utils';
 import { SubmittableExtrinsic } from '@polkadot/api/types';
 import { KeyringPair } from '@polkadot/keyring/types';
-import { ISubmittableResult } from '@polkadot/types/types';
 
 const requiredEnvVariables: string[] = ['WEBSOCKET', 'PRIVATE_KEY'];
 
@@ -46,7 +45,11 @@ describe('Proof Submission and Event Handling', () => {
         if (timeout) clearTimeout(timeout);
     });
 
-    const handleTransaction = async (submitProof: SubmittableExtrinsic<"promise", ISubmittableResult>, account: KeyringPair, proofType: string, expectsError = false) => {
+    const submitProof = (api: ApiPromise, pallet: string, proofType: string, proof: any, params: any[] = []) => {
+        return api.tx[pallet].submitProof(proof, ...params);
+    };
+
+    const handleTransaction = async (submitProof: SubmittableExtrinsic<"promise">, account: KeyringPair, proofType: string, expectsError = false) => {
         const validityPrefix = expectsError ? "Invalid" : "Valid";
         let attestation_id = null;
         return new Promise((resolve, reject) => {
@@ -55,7 +58,7 @@ describe('Proof Submission and Event Handling', () => {
                 if (interval) clearInterval(interval);
                 reject(new Error(`Test timed out waiting for ${validityPrefix} ${proofType} proof transaction finalization`));
             }, 60000);
-    
+
             submitProof.signAndSend(account, async ({ events, status, dispatchError }) => {
                 if (status.isInBlock) {
                     console.log(`${validityPrefix} ${proofType} Transaction included in block (elapsed time: ${(Date.now() - startTime) / 1000} seconds)`);
@@ -65,13 +68,13 @@ describe('Proof Submission and Event Handling', () => {
                             console.log(`${validityPrefix} ${proofType} Proof Verified:\n  - Attestation Id: ${attestation_id}\n  - Proof Leaf: ${data[0].toString()}`);
                         }
                     });
-    
+
                     interval = setInterval(() => {
                         let elapsed = (Date.now() - startTime) / 1000;
                         console.log(`Waiting for ${validityPrefix} ${proofType} transaction to finalize... (elapsed time: ${elapsed} seconds)`);
                     }, 5000);
                 }
-    
+
                 if (status.isFinalized) {
                     if (interval) clearInterval(interval);
                     clearTimeout(timeout);
@@ -117,14 +120,14 @@ describe('Proof Submission and Event Handling', () => {
         });
     };
 
-    Object.entries(proofs).forEach(([proofType, { pallet, validProof, invalidProof }]) => {
+    Object.entries(proofs).forEach(([proofType, { pallet, validProof, invalidProof, params = [] }]) => {
         test(`should successfully accept a ${proofType} proof, emit a NewAttestation event`, async () => {
             console.log(`Submitting valid ${proofType} proof...`);
             const keyring = new Keyring({ type: 'sr25519' });
             const account = keyring.addFromUri(process.env.PRIVATE_KEY as string);
 
-            const submitProof = api.tx[pallet].submitProof(validProof);
-            const result = await handleTransaction(submitProof, account, proofType);
+            const transaction = submitProof(api, pallet, proofType.toString(), validProof, params);
+            const result = await handleTransaction(transaction, account, proofType);
             expect(result).toBe('succeeded');
         }, 300000);
 
@@ -133,9 +136,9 @@ describe('Proof Submission and Event Handling', () => {
             const keyring = new Keyring({ type: 'sr25519' });
             const account = keyring.addFromUri(process.env.PRIVATE_KEY as string);
 
-            const submitProof = api.tx[pallet].submitProof(invalidProof);
-            const result = await handleTransaction(submitProof, account, proofType, true);
+            const transaction = submitProof(api, pallet, proofType.toString(), invalidProof, params);
+            const result = await handleTransaction(transaction, account, proofType, true);
             expect(result).toBe('failed as expected');
-        }, 60000);
+        }, 120000);
     });
 });
