@@ -42,21 +42,18 @@ describe('Proof Submission and Event Handling', () => {
 
     const proofTypes = Object.entries(proofs);
 
-    const submitProof = (api: ApiPromise, pallet: string, proofType: string, proof: any) => {
-        if (proofType === 'fflonk') {
-            return api.tx[pallet].submitProof(proof, null);
-        }
-        return api.tx[pallet].submitProof(proof);
+    const submitProof = (api: ApiPromise, pallet: string, proofType: string, proof: any, ...params: any[]) => {
+        return api.tx[pallet].submitProof(proof, ...params);
     };
 
     test.each(proofTypes)(
         'should successfully accept a %s proof, emit a NewAttestation event',
-        async (proofType, { pallet, validProof }) => {
+        async (proofType, { pallet, validProof, params = [] }) => {
             console.log(`Submitting valid ${proofType} proof...`);
             const keyring = new Keyring({ type: 'sr25519' });
             const account = keyring.addFromUri(process.env.PRIVATE_KEY as string);
 
-            const transaction = submitProof(api, pallet, proofType.toString(), validProof);
+            const transaction = submitProof(api, pallet, proofType.toString(), validProof, ...params);
             const result = await handleTransaction(api, transaction, account, proofType.toString(), startTime, false, timerRefs);
             expect(result).toBe('succeeded');
         },
@@ -65,12 +62,12 @@ describe('Proof Submission and Event Handling', () => {
 
     test.each(proofTypes)(
         'should reject invalid %s proof upon finalization',
-        async (proofType, { pallet, invalidProof }) => {
+        async (proofType, { pallet, invalidProof, params = [] }) => {
             console.log(`Submitting invalid ${proofType} proof...`);
             const keyring = new Keyring({ type: 'sr25519' });
             const account = keyring.addFromUri(process.env.PRIVATE_KEY as string);
 
-            const transaction = submitProof(api, pallet, proofType.toString(), invalidProof);
+            const transaction = submitProof(api, pallet, proofType.toString(), invalidProof, ...params);
             const result = await handleTransaction(api, transaction, account, proofType.toString(), startTime, true, timerRefs);
             expect(result).toBe('failed as expected');
         },
