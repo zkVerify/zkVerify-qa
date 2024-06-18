@@ -54,7 +54,7 @@ fi
 # Check if Docker image exists and rebuild if not or if rebuild flag is passed in
 image_name="horizenlabs/zkverify"
 if [[ $(docker images -q "$image_name") && "$rebuild" -eq 0 ]]; then
-    echo "Image $image_name already exists and no xd requested, skipping bootstrap."
+    echo "Image $image_name already exists and no rebuild requested, skipping bootstrap."
 else
     echo "Image $image_name does not exist or rebuild requested, running bootstrap..."
 

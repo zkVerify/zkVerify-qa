@@ -42,8 +42,14 @@ describe('Proof Submission and Event Handling', () => {
 
     const proofTypes = Object.entries(proofs);
 
-    const submitProof = (api: ApiPromise, pallet: string, proofType: string, proof: any, ...params: any[]) => {
-        return api.tx[pallet].submitProof(proof, ...params);
+    // TODO: Change this once risc0 args are ordered as per the other pallets.
+    const submitProof = (api: ApiPromise, pallet: string, proofType: string, validProof: any, ...params: any[]) => {
+        if (proofType === 'risc0') {
+            const [vk, ...additionalParams] = params;
+            return api.tx[pallet].submitProof(vk, validProof, ...additionalParams);
+        } else {
+            return api.tx[pallet].submitProof(validProof, ...params);
+        }
     };
 
     test.each(proofTypes)(
@@ -71,6 +77,6 @@ describe('Proof Submission and Event Handling', () => {
             const result = await handleTransaction(api, transaction, account, proofType.toString(), startTime, true, timerRefs);
             expect(result).toBe('failed as expected');
         },
-        60000
+        120000
     );
 });

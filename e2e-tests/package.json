@@ -2,7 +2,7 @@
   "name": "zkverify_e2e",
   "version": "1.0.0",
   "scripts": {
-    "test": "jest"
+    "test": "cp .env.local .env && jest --verbose"
   },
   "author": "Horizen Labs",
   "license": "ISC",

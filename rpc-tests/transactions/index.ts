@@ -13,13 +13,15 @@ const handleInBlock = (
     proofType: string,
     startTime: number,
     blockHash: string,
-    setAttestationId: (id: string) => void
+    setAttestationId: (id: string) => void,
+    expectsError: boolean
 ) => {
-    console.log(`Valid ${proofType} Transaction included in block ${blockHash} (elapsed time: ${(Date.now() - startTime) / 1000} seconds)`);
+    const validityPrefix = expectsError ? "Invalid" : "Valid";
+    console.log(`${validityPrefix} ${proofType} Transaction included in block ${blockHash} (elapsed time: ${(Date.now() - startTime) / 1000} seconds)`);
     handleEvents(events, (data) => {
         if (data && data.length > 1) {
             setAttestationId(data[1].toString());
-            console.log(`Valid ${proofType} Proof Verified:\n  - Attestation Id: ${data[1].toString()}\n  - Proof Leaf: ${data[0].toString()}`);
+            console.log(`${validityPrefix} ${proofType} Proof Verified:\n  - Attestation Id: ${data[1].toString()}\n  - Proof Leaf: ${data[0].toString()}`);
         }
     });
 };
@@ -79,6 +81,8 @@ export const handleTransaction = async (
     };
 
     return new Promise((resolve, reject) => {
+        let isFinalized = false;
+
         timerRefs.timeout = setTimeout(() => {
             clearResources(timerRefs);
             reject(new Error(`Test timed out waiting for ${validityPrefix} ${proofType} proof transaction finalization`));
@@ -87,15 +91,18 @@ export const handleTransaction = async (
         submitProof.signAndSend(account, async ({ events, status, dispatchError }) => {
             try {
                 if (status.isInBlock) {
-                    handleInBlock(events, proofType, startTime, status.asInBlock.toString(), setAttestationId);
+                    handleInBlock(events, proofType, startTime, status.asInBlock.toString(), setAttestationId, expectsError);
 
                     timerRefs.interval = setInterval(() => {
-                        let elapsed = (Date.now() - startTime) / 1000;
-                        console.log(`Waiting for ${validityPrefix} ${proofType} transaction to finalize... (elapsed time: ${elapsed} seconds)`);
+                        if (!isFinalized) {
+                            let elapsed = (Date.now() - startTime) / 1000;
+                            console.log(`Waiting for ${validityPrefix} ${proofType} transaction to finalize... (elapsed time: ${elapsed} seconds)`);
+                        }
                     }, 5000) as NodeJS.Timeout;
                 }
 
                 if (status.isFinalized) {
+                    isFinalized = true;
                     clearResources(timerRefs);
                     const result = await handleFinalized(proofType, expectsError, attestation_id, dispatchError, api, startTime);
                     resolve(result);
