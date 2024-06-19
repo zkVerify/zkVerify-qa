@@ -13,23 +13,29 @@ while [[ "$#" -gt 0 ]]; do
     shift
 done
 
-# Repositories
-repo_names=("nh-core" "nh-attestation-bot")
-repo_urls=("https://github.com/HorizenLabs/NH-core.git" "https://github.com/HorizenLabs/NH-attestation-bot.git")
+# Repositories (add nh-core only if running locally)
+repo_names=("nh-attestation-bot")
+repo_urls=("https://github.com/HorizenLabs/NH-attestation-bot.git")
 
 repo_count=${#repo_names[@]}
 
 # Check if running in GitHub Actions
 if [ "${GITHUB_ACTIONS:-}" = "true" ]; then
-  echo "Running in GitHub Actions. Using token for authentication."
+  echo "Running in GitHub Actions. Using pre-built Docker image."
   if [ -z "${GH_TOKEN:-}" ]; then
     echo "Error: GH_TOKEN is not set. Please set it as a secret in your GitHub Actions workflow."
     exit 1
   fi
   auth_prefix="https://${GH_TOKEN}@"
+  use_prebuilt_image=true
 else
   echo "Running locally. Using default authentication."
   auth_prefix=""
+  use_prebuilt_image=false
+  # Repositories (add nh-core ready to be built locally)
+  repo_names=("nh-core" "nh-attestation-bot")
+  repo_urls=("https://github.com/HorizenLabs/NH-core.git" "https://github.com/HorizenLabs/NH-attestation-bot.git")
+  repo_count=${#repo_names[@]}
 fi
 
 # Clone each repository into the services directory or fetch latest updates
@@ -59,45 +65,48 @@ for ((i=0; i<repo_count; i++)); do
   fi
 done
 
-echo "Configuring and bootstrapping nh-core..."
-cd services/nh-core || exit 1
+if [ "$use_prebuilt_image" = false ]; then
+  echo "Pre-built image not selected... Configuring and bootstrapping nh-core..."
+  cd services/nh-core || exit 1
 
-# Source config
-if [ -f "cfg" ]; then
-    source cfg
-else
-    echo "Configuration file not found at the top level, check the path and filename."
-    exit 1
+  # Source config
+  if [ -f "cfg" ]; then
+      source cfg
+  else
+      echo "Configuration file not found at the top level, check the path and filename."
+      exit 1
+  fi
+
+  # Check if Docker image exists and rebuild if not or if rebuild flag is passed in
+  image_name="horizenlabs/zkverify"
+  if [[ $(docker images -q "$image_name") && "$rebuild" -eq 0 ]]; then
+      echo "Image $image_name already exists and no rebuild requested, skipping bootstrap."
+  else
+      echo "Image $image_name does not exist or rebuild requested, running bootstrap..."
+
+      containers=$(docker ps -a -q --filter ancestor="$image_name")
+      if [ -n "$containers" ]; then
+          echo "Stopping and removing containers using the image $image_name..."
+          docker stop $containers
+          docker rm -f $containers
+      fi
+
+      if docker images -q "$image_name"; then
+          echo "Removing image $image_name..."
+          docker rmi -f "$image_name"
+      fi
+
+      if [ -f "docker/scripts/bootstrap.sh" ]; then
+          chmod +x docker/scripts/bootstrap.sh
+          ./docker/scripts/bootstrap.sh
+          echo "nh-core is set up and ready."
+      else
+          echo "Bootstrap script not found in 'docker/scripts/', check the path and filename."
+          exit 1
+      fi
+  fi
+
+  cd ../..
 fi
 
-# Check if Docker image exists and rebuild if not or if rebuild flag is passed in
-image_name="horizenlabs/zkverify"
-if [[ $(docker images -q "$image_name") && "$rebuild" -eq 0 ]]; then
-    echo "Image $image_name already exists and no rebuild requested, skipping bootstrap."
-else
-    echo "Image $image_name does not exist or rebuild requested, running bootstrap..."
-
-    containers=$(docker ps -a -q --filter ancestor="$image_name")
-    if [ -n "$containers" ]; then
-        echo "Stopping and removing containers using the image $image_name..."
-        docker stop $containers
-        docker rm -f $containers
-    fi
-
-    if docker images -q "$image_name"; then
-        echo "Removing image $image_name..."
-        docker rmi -f "$image_name"
-    fi
-
-    if [ -f "docker/scripts/bootstrap.sh" ]; then
-        chmod +x docker/scripts/bootstrap.sh
-        ./docker/scripts/bootstrap.sh
-        echo "nh-core is set up and ready."
-    else
-        echo "Bootstrap script not found in 'docker/scripts/', check the path and filename."
-        exit 1
-    fi
-fi
-
-cd ../..
 echo "Setup completed."

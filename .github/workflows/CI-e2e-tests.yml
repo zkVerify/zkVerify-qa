@@ -23,6 +23,9 @@ jobs:
         with:
           node-version: '18'
 
+      - name: Pull Docker image for zkVerify
+        run: docker pull horizenlabs/zkverify:latest
+
       - name: Run setup script
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
