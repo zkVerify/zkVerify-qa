@@ -24,6 +24,8 @@ jobs:
           node-version: '18'
 
       - name: Run setup script
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: ./setup.sh --fetch-latest --rebuild
 
       - name: Install npm dependencies
