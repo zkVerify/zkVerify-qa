@@ -19,6 +19,19 @@ repo_urls=("https://github.com/HorizenLabs/NH-core.git" "https://github.com/Hori
 
 repo_count=${#repo_names[@]}
 
+# Check if running in GitHub Actions
+if [ "${GITHUB_ACTIONS:-}" = "true" ]; then
+  echo "Running in GitHub Actions. Using token for authentication."
+  if [ -z "${GH_TOKEN:-}" ]; then
+    echo "Error: GH_TOKEN is not set. Please set it as a secret in your GitHub Actions workflow."
+    exit 1
+  fi
+  auth_prefix="https://${GH_TOKEN}@"
+else
+  echo "Running locally. Using default authentication."
+  auth_prefix=""
+fi
+
 # Clone each repository into the services directory or fetch latest updates
 for ((i=0; i<repo_count; i++)); do
   repo=${repo_names[$i]}
@@ -27,7 +40,13 @@ for ((i=0; i<repo_count; i++)); do
 
   if [ ! -d "$target_dir" ]; then
     echo "Directory $target_dir does not exist. Cloning..."
-    git clone "$repo_url" "$target_dir"
+    if [ -n "$auth_prefix" ]; then
+      # Running in GitHub Actions
+      git clone "${auth_prefix}${repo_url#https://}" "$target_dir"
+    else
+      # Running locally
+      git clone "${repo_url}" "$target_dir"
+    fi
     echo "Repository $repo cloned successfully."
   else
     echo "Directory $target_dir already exists."
