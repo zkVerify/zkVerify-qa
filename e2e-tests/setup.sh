@@ -13,15 +13,15 @@ while [[ "$#" -gt 0 ]]; do
     shift
 done
 
-# Repositories (add nh-core only if running locally)
-repo_names=("nh-attestation-bot")
-repo_urls=("https://github.com/HorizenLabs/NH-attestation-bot.git")
+# Repositories
+repo_names=("nh-core" "nh-attestation-bot")
+repo_urls=("https://github.com/HorizenLabs/NH-core.git" "https://github.com/HorizenLabs/NH-attestation-bot.git")
 
 repo_count=${#repo_names[@]}
 
 # Check if running in GitHub Actions
 if [ "${GITHUB_ACTIONS:-}" = "true" ]; then
-  echo "Running in GitHub Actions. Using pre-built Docker image."
+  echo "Running in GitHub Actions... Using pre-built zkVerify Docker image."
   if [ -z "${GH_TOKEN:-}" ]; then
     echo "Error: GH_TOKEN is not set. Please set it as a secret in your GitHub Actions workflow."
     exit 1
@@ -32,10 +32,6 @@ else
   echo "Running locally. Using default authentication."
   auth_prefix=""
   use_prebuilt_image=false
-  # Repositories (add nh-core ready to be built locally)
-  repo_names=("nh-core" "nh-attestation-bot")
-  repo_urls=("https://github.com/HorizenLabs/NH-core.git" "https://github.com/HorizenLabs/NH-attestation-bot.git")
-  repo_count=${#repo_names[@]}
 fi
 
 # Clone each repository into the services directory or fetch latest updates
