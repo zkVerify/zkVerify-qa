@@ -40,28 +40,30 @@ jobs:
           docker-compose build --no-cache
           docker-compose up -d
 
-      - name: Wait for Attestation Bot to be ready
+      - name: Wait for Ethereum contract to be deployed
         run: |
           MAX_WAIT_TIME=300
           wait_time=0
           while true; do
-            CONTRACT_ADDRESS=$(docker-compose exec -T attestation-bot sh -c "echo \$NH_ATTEST_BOT_NH_CONTRACT_ADDRESS")
-            PRIVATE_KEY=$(docker-compose exec -T attestation-bot sh -c "echo \$NH_ATTEST_BOT_OPERATOR_SECRET_KEY")
-            if [ ! -z "$CONTRACT_ADDRESS" ] && [ ! -z "$PRIVATE_KEY" ]; then
-              echo "Attestation bot is ready."
-              echo "NH_CONTRACT=$CONTRACT_ADDRESS" >> $GITHUB_ENV
-              echo "PRIVATE_KEY=$PRIVATE_KEY" >> $GITHUB_ENV
-              break
+            if docker-compose exec -T anvil-node test -f /data/contract_data.txt; then
+              CONTRACT_ADDRESS=$(docker-compose exec -T anvil-node sh -c "sed -n '1p' /data/contract_data.txt | cut -d ' ' -f 3")
+              if [ ! -z "$CONTRACT_ADDRESS" ]; then
+                echo "Contract data is ready."
+                echo "NH_CONTRACT=$CONTRACT_ADDRESS" >> $GITHUB_ENV
+                break
+              fi
             fi
             if [ "$wait_time" -ge "$MAX_WAIT_TIME" ]; then
-              echo "Timeout reached: Attestation bot is not ready."
+              echo "Timeout reached: contract data file is not ready."
               exit 1
             fi
-            echo "Waiting for Attestation bot to be ready..."
-            sleep 5
+            echo "Waiting for contract data file to be ready..."
+            sleep 2
             wait_time=$((wait_time + 5))
           done
 
       - name: Run E2E tests
         run: |
-          WEBSOCKET=ws://127.0.0.1:9944 PRIVATE_KEY=${{ secrets.PRIVATE_KEY }} npm run test
+          WEBSOCKET=ws://127.0.0.1:9944 npm run test
+        env:
+          NH_CONTRACT: ${{ env.NH_CONTRACT }}
