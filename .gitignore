@@ -14,6 +14,6 @@ benchmarking_errors.txt
 rpc-tests/node_modules
 rpc-tests//reports
 test-report-*.html
-e2e/services/nh-core
-e2e/services/nh-attestation-bot
-e2e/services/nh-attestation-bot
+e2e-tests/services/nh-core
+e2e-tests/services/nh-attestation-bot
+e2e-tests/services/nh-attestation-bot

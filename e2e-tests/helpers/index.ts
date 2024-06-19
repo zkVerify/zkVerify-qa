@@ -68,7 +68,6 @@ export async function waitForNewAttestation(api: ApiPromise, timeoutDuration: nu
     });
 }
 
-
 export async function waitForNodeToSync(api: ApiPromise): Promise<void> {
     let isSyncing = true;
     while (isSyncing) {

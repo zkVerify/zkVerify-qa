@@ -2,9 +2,9 @@ import 'dotenv/config';
 import { ApiPromise, WsProvider } from '@polkadot/api';
 import { Keyring } from '@polkadot/keyring';
 import { describe, test, expect, beforeAll, afterAll, beforeEach, afterEach } from '@jest/globals';
-import { proofs } from '../../../proofs';
-import { createApi, waitForNodeToSync } from '../../../helpers';
-import { handleTransaction, clearResources } from '../../../transactions';
+import { proofs } from '../../proofs';
+import { createApi, waitForNodeToSync } from '../../helpers';
+import { handleTransaction, clearResources } from '../../transactions';
 
 const requiredEnvVariables: string[] = ['WEBSOCKET', 'PRIVATE_KEY'];
 
