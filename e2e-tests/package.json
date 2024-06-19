@@ -2,7 +2,7 @@
   "name": "zkverify_e2e",
   "version": "1.0.0",
   "scripts": {
-    "test": "cp .env.local .env && jest --verbose"
+    "test": "cp .env.local .env && jest --forceExit --verbose"
   },
   "author": "Horizen Labs",
   "license": "ISC",
