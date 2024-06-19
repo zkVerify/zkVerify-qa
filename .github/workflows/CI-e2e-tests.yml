@@ -45,8 +45,8 @@ jobs:
           MAX_WAIT_TIME=300
           wait_time=0
           while true; do
-            CONTRACT_ADDRESS=$(docker-compose exec attestation-bot sh -c "echo \$NH_ATTEST_BOT_NH_CONTRACT_ADDRESS")
-            PRIVATE_KEY=$(docker-compose exec attestation-bot sh -c "echo \$NH_ATTEST_BOT_OPERATOR_SECRET_KEY")
+            CONTRACT_ADDRESS=$(docker-compose exec -T attestation-bot sh -c "echo \$NH_ATTEST_BOT_NH_CONTRACT_ADDRESS")
+            PRIVATE_KEY=$(docker-compose exec -T attestation-bot sh -c "echo \$NH_ATTEST_BOT_OPERATOR_SECRET_KEY")
             if [ ! -z "$CONTRACT_ADDRESS" ] && [ ! -z "$PRIVATE_KEY" ]; then
               echo "Attestation bot is ready."
               echo "NH_CONTRACT=$CONTRACT_ADDRESS" >> $GITHUB_ENV
