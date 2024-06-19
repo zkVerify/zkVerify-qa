@@ -72,11 +72,18 @@ jobs:
         run: |
           TEST_OUTPUT=$(cat reports/test_output.txt)
           
-          PASSED=$(echo "$TEST_OUTPUT" | grep -oP 'Tests:\s+\K\d+(?=\s+passed)')
-          FAILED=$(echo "$TEST_OUTPUT" | grep -oP 'Tests:\s+\d+\s+passed,\s+\K\d+(?=\s+failed)')
-          SKIPPED=$(echo "$TEST_OUTPUT" | grep -oP 'Tests:\s+\d+\s+passed,\s+\d+\s+failed,\s+\K\d+(?=\s+skipped)')
-          TOTAL=$(echo "$TEST_OUTPUT" | grep -oP 'Tests:\s+\K\d+(?=\s+total)')
-          
+          PASSED=0
+          FAILED=0
+          SKIPPED=0
+          TOTAL=0
+
+          if echo "$TEST_OUTPUT" | grep -q 'Tests:'; then
+              PASSED=$(echo "$TEST_OUTPUT" | awk '/Tests:/ {for(i=1;i<=NF;i++) if($i=="passed,") print $(i-1)}')
+              FAILED=$(echo "$TEST_OUTPUT" | awk '/Tests:/ {for(i=1;i<=NF;i++) if($i=="failed,") print $(i-1)}')
+              SKIPPED=$(echo "$TEST_OUTPUT" | awk '/Tests:/ {for(i=1;i<=NF;i++) if($i=="skipped,") print $(i-1)}')
+              TOTAL=$(echo "$TEST_OUTPUT" | awk '/Tests:/ {for(i=1;i<=NF;i++) if($i=="total") print $(i-1)}')
+          fi
+
           PASSED=${PASSED:-0}
           FAILED=${FAILED:-0}
           SKIPPED=${SKIPPED:-0}
