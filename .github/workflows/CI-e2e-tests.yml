@@ -49,7 +49,7 @@ jobs:
               CONTRACT_ADDRESS=$(docker-compose exec -T anvil-node sh -c "sed -n '1p' /data/contract_data.txt | cut -d ' ' -f 3")
               if [ ! -z "$CONTRACT_ADDRESS" ]; then
                 echo "Contract data is ready."
-                echo "NH_CONTRACT=$CONTRACT_ADDRESS" >> $GITHUB_ENV
+                echo "ZKV_CONTRACT=$CONTRACT_ADDRESS" >> $GITHUB_ENV
                 break
               fi
             fi
@@ -66,7 +66,7 @@ jobs:
         id: run_tests
         run: |
           mkdir -p reports
-          WEBSOCKET=ws://127.0.0.1:9944 NH_CONTRACT=${{ env.NH_CONTRACT }} npm run test 2>&1 | tee reports/test_output.txt
+          WEBSOCKET=ws://127.0.0.1:9944 ZKV_CONTRACT=${{ env.ZKV_CONTRACT }} npm run test 2>&1 | tee reports/test_output.txt
 
       - name: Parse Test Results
         run: |

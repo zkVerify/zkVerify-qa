@@ -1,8 +1,8 @@
 require('dotenv').config();
 const Web3 = require('web3').default;
 
-if (!process.env.NH_CONTRACT) {
-    throw new Error('Required environment variable NH_CONTRACT is not set.');
+if (!process.env.ZKV_CONTRACT) {
+    throw new Error('Required environment variable ZKV_CONTRACT is not set.');
 }
 
 const provider = new Web3.providers.HttpProvider('http://localhost:8545');
@@ -25,7 +25,7 @@ const contractABI = [
     }
 ];
 
-const contractAddress = process.env.NH_CONTRACT;
+const contractAddress = process.env.ZKV_CONTRACT;
 const contract = new web3.eth.Contract(contractABI, contractAddress);
 
 async function getLatestAttestationId() {

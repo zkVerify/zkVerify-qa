@@ -16,4 +16,4 @@ rpc-tests//reports
 test-report-*.html
 e2e-tests/services/nh-core
 e2e-tests/services/nh-attestation-bot
-e2e-tests/services/nh-attestation-bot
+e2e-tests/services/zkv-attestation-contracts

@@ -14,8 +14,9 @@ while [[ "$#" -gt 0 ]]; do
 done
 
 # Repositories
-repo_names=("nh-core" "nh-attestation-bot")
-repo_urls=("https://github.com/HorizenLabs/NH-core.git" "https://github.com/HorizenLabs/NH-attestation-bot.git")
+repo_names=("nh-core" "nh-attestation-bot" "zkv-attestation-contracts")
+repo_urls=("https://github.com/HorizenLabs/NH-core.git" "https://github.com/HorizenLabs/NH-attestation-bot.git" "https://github.com/HorizenLabs/zkv-attestation-contracts.git")
+repo_branches=("main" "main" "main")
 
 repo_count=${#repo_names[@]}
 
@@ -38,23 +39,24 @@ fi
 for ((i=0; i<repo_count; i++)); do
   repo=${repo_names[$i]}
   repo_url=${repo_urls[$i]}
+  repo_branch=${repo_branches[$i]}
   target_dir="./services/$repo"
 
   if [ ! -d "$target_dir" ]; then
     echo "Directory $target_dir does not exist. Cloning..."
     if [ -n "$auth_prefix" ]; then
       # Running in GitHub Actions
-      git clone "${auth_prefix}${repo_url#https://}" "$target_dir"
+      git clone -b "$repo_branch" "${auth_prefix}${repo_url#https://}" "$target_dir"
     else
       # Running locally
-      git clone "${repo_url}" "$target_dir"
+      git clone -b "$repo_branch" "${repo_url}" "$target_dir"
     fi
     echo "Repository $repo cloned successfully."
   else
     echo "Directory $target_dir already exists."
     if [ "$fetch_latest" -eq 1 ]; then
       echo "Fetching latest for $repo..."
-      (cd "$target_dir" && git pull origin main)
+      (cd "$target_dir" && git pull origin "$repo_branch")
     else
       echo "Skipping update for $repo."
     fi
