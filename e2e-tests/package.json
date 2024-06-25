@@ -14,7 +14,8 @@
   "jest": {
     "transform": {
       "^.+\\.[t|j]sx?$": "babel-jest"
-    }
+    },
+    "testPathIgnorePatterns": ["/node_modules/", "/services/"]
   },
   "devDependencies": {
     "@babel/preset-env": "7.21.5",

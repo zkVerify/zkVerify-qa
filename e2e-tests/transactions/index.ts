@@ -72,7 +72,7 @@ export const handleTransaction = async (
     startTime: number,
     expectsError = false,
     timerRefs: { interval: NodeJS.Timeout | null, timeout: NodeJS.Timeout | null }
-): Promise<string> => {
+): Promise<{ result: string, attestationId: string | null }> => {
     const validityPrefix = expectsError ? "Invalid" : "Valid";
     let attestation_id: string | null = null;
 
@@ -105,7 +105,7 @@ export const handleTransaction = async (
                     isFinalized = true;
                     clearResources(timerRefs);
                     const result = await handleFinalized(proofType, expectsError, attestation_id, dispatchError, api, startTime);
-                    resolve(result);
+                    resolve({ result, attestationId: attestation_id });
                 }
             } catch (error) {
                 clearResources(timerRefs);

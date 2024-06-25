@@ -5,8 +5,9 @@ import { describe, test, expect, beforeAll, afterAll, beforeEach, afterEach } fr
 import { proofs } from '../../proofs';
 import { createApi, waitForNodeToSync } from '../../helpers';
 import { handleTransaction, clearResources } from '../../transactions';
+import { pollLatestAttestationId } from '../../ethereum';
 
-const requiredEnvVariables: string[] = ['WEBSOCKET', 'PRIVATE_KEY'];
+const requiredEnvVariables: string[] = ['WEBSOCKET', 'PRIVATE_KEY', 'ANVIL', 'ZKV_CONTRACT'];
 
 requiredEnvVariables.forEach(envVar => {
     if (!process.env[envVar]) {
@@ -42,7 +43,6 @@ describe('Proof Submission and Event Handling', () => {
 
     const proofTypes = Object.entries(proofs);
 
-    // TODO: Change this once risc0 args are ordered as per the other pallets.
     const submitProof = (api: ApiPromise, pallet: string, proofType: string, validProof: any, ...params: any[]) => {
         if (proofType === 'risc0') {
             const [vk, ...additionalParams] = params;
@@ -53,15 +53,21 @@ describe('Proof Submission and Event Handling', () => {
     };
 
     test.each(proofTypes)(
-        'should successfully accept a %s proof, emit a NewAttestation event',
+        'should successfully accept a %s proof, emit a NewAttestation event and the attestation posted to ZkVerifyAttestation contract on Ethereum.',
         async (proofType, { pallet, validProof, params = [] }) => {
             console.log(`Submitting valid ${proofType} proof...`);
             const keyring = new Keyring({ type: 'sr25519' });
             const account = keyring.addFromUri(process.env.PRIVATE_KEY as string);
 
             const transaction = submitProof(api, pallet, proofType.toString(), validProof, ...params);
-            const result = await handleTransaction(api, transaction, account, proofType.toString(), startTime, false, timerRefs);
+            const { result, attestationId } = await handleTransaction(api, transaction, account, proofType.toString(), startTime, false, timerRefs);
             expect(result).toBe('succeeded');
+
+            // Poll the latestAttestationId on the deployed ZkVerifyAttestation.sol contract
+            expect(attestationId).not.toBeNull();
+            const expectedId = parseInt(attestationId!, 10);
+            const success = await pollLatestAttestationId(expectedId);
+            expect(success).toBe(true);
         },
         150000
     );
@@ -74,7 +80,7 @@ describe('Proof Submission and Event Handling', () => {
             const account = keyring.addFromUri(process.env.PRIVATE_KEY as string);
 
             const transaction = submitProof(api, pallet, proofType.toString(), invalidProof, ...params);
-            const result = await handleTransaction(api, transaction, account, proofType.toString(), startTime, true, timerRefs);
+            const { result } = await handleTransaction(api, transaction, account, proofType.toString(), startTime, true, timerRefs);
             expect(result).toBe('failed as expected');
         },
         120000

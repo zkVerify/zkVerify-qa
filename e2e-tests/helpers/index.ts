@@ -78,3 +78,4 @@ export async function waitForNodeToSync(api: ApiPromise): Promise<void> {
         }
     }
 }
+
