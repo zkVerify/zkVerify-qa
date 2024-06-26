@@ -42,24 +42,19 @@ describe('Proof Submission and Event Handling', () => {
 
     const proofTypes = Object.entries(proofs);
 
-    // TODO: Change this once risc0 args are ordered as per the other pallets.
-    const submitProof = (api: ApiPromise, pallet: string, proofType: string, validProof: any, ...params: any[]) => {
-        if (proofType === 'risc0') {
-            const [vk, ...additionalParams] = params;
-            return api.tx[pallet].submitProof(vk, validProof, ...additionalParams);
-        } else {
-            return api.tx[pallet].submitProof(validProof, ...params);
-        }
+    const submitProof = (api: ApiPromise, pallet: string, params: any[]) => {
+        return api.tx[pallet].submitProof(...params);
     };
 
     test.each(proofTypes)(
-        'should successfully accept a %s proof, emit a NewAttestation event',
-        async (proofType, { pallet, validProof, params = [] }) => {
+        'should successfully accept a %s proof and emit a NewAttestation event.',
+        async (proofType, { pallet, getParams }) => {
             console.log(`Submitting valid ${proofType} proof...`);
             const keyring = new Keyring({ type: 'sr25519' });
             const account = keyring.addFromUri(process.env.PRIVATE_KEY as string);
 
-            const transaction = submitProof(api, pallet, proofType.toString(), validProof, ...params);
+            const params = getParams(true);
+            const transaction = submitProof(api, pallet, params);
             const result = await handleTransaction(api, transaction, account, proofType.toString(), startTime, false, timerRefs);
             expect(result).toBe('succeeded');
         },
@@ -68,12 +63,13 @@ describe('Proof Submission and Event Handling', () => {
 
     test.each(proofTypes)(
         'should reject invalid %s proof upon finalization',
-        async (proofType, { pallet, invalidProof, params = [] }) => {
+        async (proofType, { pallet, getParams }) => {
             console.log(`Submitting invalid ${proofType} proof...`);
             const keyring = new Keyring({ type: 'sr25519' });
             const account = keyring.addFromUri(process.env.PRIVATE_KEY as string);
 
-            const transaction = submitProof(api, pallet, proofType.toString(), invalidProof, ...params);
+            const params = getParams(false);
+            const transaction = submitProof(api, pallet, params);
             const result = await handleTransaction(api, transaction, account, proofType.toString(), startTime, true, timerRefs);
             expect(result).toBe('failed as expected');
         },
