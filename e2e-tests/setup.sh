@@ -15,9 +15,8 @@ done
 
 # Repositories
 repo_names=("zkVerify" "nh-attestation-bot" "zkv-attestation-contracts")
-repo_urls=("git@github.com:HorizenLabs/zkVerify.git" "https://github.com/HorizenLabs/NH-attestation-bot.git" "https://github.com/HorizenLabs/zkv-attestation-contracts.git")
+repo_urls=("https://github.com/HorizenLabs/zkVerify.git" "https://github.com/HorizenLabs/NH-attestation-bot.git" "https://github.com/HorizenLabs/zkv-attestation-contracts.git")
 repo_branches=("main" "main" "main")
-
 repo_count=${#repo_names[@]}
 
 # Check if running in GitHub Actions
