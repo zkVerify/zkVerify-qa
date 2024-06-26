@@ -14,10 +14,9 @@ while [[ "$#" -gt 0 ]]; do
 done
 
 # Repositories
-repo_names=("nh-core" "nh-attestation-bot" "zkv-attestation-contracts")
-repo_urls=("https://github.com/HorizenLabs/NH-core.git" "https://github.com/HorizenLabs/NH-attestation-bot.git" "https://github.com/HorizenLabs/zkv-attestation-contracts.git")
+repo_names=("zkVerify" "nh-attestation-bot" "zkv-attestation-contracts")
+repo_urls=("https://github.com/HorizenLabs/zkVerify.git" "https://github.com/HorizenLabs/NH-attestation-bot.git" "https://github.com/HorizenLabs/zkv-attestation-contracts.git")
 repo_branches=("main" "main" "main")
-
 repo_count=${#repo_names[@]}
 
 # Check if running in GitHub Actions
@@ -64,8 +63,8 @@ for ((i=0; i<repo_count; i++)); do
 done
 
 if [ "$use_prebuilt_image" = false ]; then
-  echo "Pre-built image not selected... Configuring and bootstrapping nh-core..."
-  cd services/nh-core || exit 1
+  echo "Pre-built image not selected... Configuring and bootstrapping zkVerify..."
+  cd services/zkVerify || exit 1
 
   # Source config
   if [ -f "cfg" ]; then
@@ -97,7 +96,7 @@ if [ "$use_prebuilt_image" = false ]; then
       if [ -f "docker/scripts/bootstrap.sh" ]; then
           chmod +x docker/scripts/bootstrap.sh
           ./docker/scripts/bootstrap.sh
-          echo "nh-core is set up and ready."
+          echo "zkVerify is set up and ready."
       else
           echo "Bootstrap script not found in 'docker/scripts/', check the path and filename."
           exit 1

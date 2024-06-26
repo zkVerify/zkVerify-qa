@@ -36,14 +36,14 @@ export async function pollLatestAttestationId(expectedId: number, timeout: numbe
     while (Date.now() < endTime) {
         const latestAttestationId = await getLatestAttestationId();
         if (latestAttestationId === expectedId) {
-            console.log(`Expected attestation ID ${expectedId} found.`);
+            console.log(`Expected attestation ID ${expectedId} found on Ethereum zkVerify contract.`);
             return true;
         }
         const elapsed = (timeout - (endTime - Date.now())) / 1000;
-        console.log(`Polling for attestation ID... elapsed time: ${elapsed.toFixed(2)} seconds`);
+        console.log(`Polling Ethereum zkVerify contract for attestation ID... elapsed time: ${elapsed.toFixed(2)} seconds`);
         await new Promise(resolve => setTimeout(resolve, interval));
     }
 
-    console.log(`Timeout reached while polling for attestation ID ${expectedId}.`);
+    console.log(`Timeout reached while polling Ethereum zkVerify contract for attestation ID ${expectedId}.`);
     return false;
 }
