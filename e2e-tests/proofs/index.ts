@@ -1,48 +1,46 @@
+import { fflonkProofData } from '../data/fflonk';
+import { boojumProofData } from '../data/boojum';
+import { risc0ProofData } from '../data/risc0';
+import { groth16ProofData } from '../data/groth16';
+
 export interface Proofs {
     [key: string]: {
         pallet: string;
-        validProof: string;
-        invalidProof: string;
-        params?: any[];
+        getParams: (valid: boolean) => any[];
     };
 }
-
-const getEnvVariable = (key: string): string => {
-    const value = process.env[key];
-    if (!value) {
-        throw new Error(`Environment variable ${key} is not set.`);
-    }
-    return value;
-};
 
 export const proofs: Proofs = {
     fflonk: {
         pallet: 'settlementFFlonkPallet',
-        validProof: getEnvVariable('FFLONK_PROOF'),
-        invalidProof: getEnvVariable('INVALID_FFLONK_PROOF'),
-        params: [null]
+        getParams: (valid: boolean) => [
+            { 'Vk': fflonkProofData.vk },
+            valid ? fflonkProofData.proof : fflonkProofData.invalid_proof,
+            fflonkProofData.pubs
+        ],
     },
     boojum: {
         pallet: 'settlementZksyncPallet',
-        validProof: getEnvVariable('BOOJUM_PROOF'),
-        invalidProof: getEnvVariable('INVALID_BOOJUM_PROOF')
+        getParams: (valid: boolean) => [
+            { 'Vk': boojumProofData.vk },
+            valid ? boojumProofData.proof : boojumProofData.invalid_proof,
+            boojumProofData.pubs
+        ]
     },
     risc0: {
         pallet: 'settlementRisc0Pallet',
-        validProof: getEnvVariable('RISC0_PROOF'),
-        invalidProof: getEnvVariable('INVALID_RISC0_PROOF'),
-        params: [
-            getEnvVariable('VK_RISC0'),
-            getEnvVariable('PUBS_RISC0')
+        getParams: (valid: boolean) => [
+            { 'Vk': risc0ProofData.vk },
+            valid ? risc0ProofData.proof : risc0ProofData.invalid_proof,
+            risc0ProofData.pubs
         ]
     },
     groth16: {
         pallet: 'settlementGroth16Pallet',
-        validProof: JSON.parse(getEnvVariable('GROTH16_PROOF')),
-        invalidProof: JSON.parse(getEnvVariable('INVALID_GROTH16_PROOF')),
-        params: [
-            JSON.parse(getEnvVariable('VK_GROTH16')),
-            JSON.parse(getEnvVariable('INPUTS_GROTH16'))
+        getParams: (valid: boolean) => [
+            { 'Vk': groth16ProofData.vk },
+            valid ? groth16ProofData.proof : groth16ProofData.invalid_proof,
+            groth16ProofData.pubs
         ]
     }
 };
