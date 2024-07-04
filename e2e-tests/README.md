@@ -48,8 +48,10 @@ npm test
 
 ### Submit a proof
 
+Uses proof data from `/data` directory
+
 ```bash
-node ./scripts/submit_proof.js
+ts-node ./scripts/submit_proof.ts fflonk
 ```
 
 ## Anvil Standalone Setup
