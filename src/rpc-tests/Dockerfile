@@ -1,10 +1,8 @@
-# Dockerfile
 FROM node:16-alpine
 
 WORKDIR /usr/src/app
 
 COPY package*.json ./
-
 COPY .env.local.rpc ./
 COPY .env.testnet.rpc ./
 COPY jest.config.local.rpc.js ./
