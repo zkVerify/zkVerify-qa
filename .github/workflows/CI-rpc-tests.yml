@@ -65,6 +65,7 @@ jobs:
 
           if [ "$OVERALL_STATUS" == "failure" ]; then
             exit 1
+          fi
 
       - name: Send Slack Notification
         if: always()
