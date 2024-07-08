@@ -22,8 +22,8 @@ jobs:
       - name: Run RPC tests
         id: run_tests
         run: |
-          mkdir -p reports
-          docker run --rm -e PRIVATE_KEY=${{ secrets.QA_PRIVATE_KEY }} -v ${{ github.workspace }}/src/rpc-tests/reports:/usr/src/app/reports rpc-tests:latest 2>&1 | tee reports/test_output.txt
+          mkdir -p src/rpc-tests/reports
+          docker run --rm -e PRIVATE_KEY=${{ secrets.QA_PRIVATE_KEY }} -v ${{ github.workspace }}/src/rpc-tests/reports:/usr/src/app/reports rpc-tests:latest 2>&1 | tee src/rpc-tests/reports/test_output.txt
         working-directory: .
 
       - name: Parse Test Results
