@@ -55,8 +55,9 @@ describe('Proof Submission and Event Handling', () => {
 
             const params = getParams(true);
             const transaction = submitProof(api, pallet, params);
-            const result = await handleTransaction(api, transaction, account, proofType.toString(), startTime, false, timerRefs);
+            const { result, attestationId } = await handleTransaction(api, transaction, account, proofType.toString(), startTime, false, timerRefs);
             expect(result).toBe('succeeded');
+            expect(attestationId).not.toBeNull();
         },
         150000
     );
