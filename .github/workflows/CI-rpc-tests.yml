@@ -17,14 +17,14 @@ jobs:
       - name: Build Docker image
         id: build_image
         run: docker build -t rpc-tests:latest .
-        working-directory: .
+        working-directory: src/rpc-tests
 
       - name: Run RPC tests
         id: run_tests
         run: |
           mkdir -p reports
           docker run --rm -e PRIVATE_KEY=${{ secrets.QA_PRIVATE_KEY }} -v ${{ github.workspace }}/src/rpc-tests/reports:/usr/src/app/reports rpc-tests:latest 2>&1 | tee reports/test_output.txt
-        working-directory: .
+        working-directory: src/rpc-tests
         continue-on-error: true
 
       - name: Parse Test Results
