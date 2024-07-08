@@ -1,14 +1,20 @@
+# Dockerfile
 FROM node:16-alpine
 
 WORKDIR /usr/src/app
 
-# Copy package.json and package-lock.json from the root level
-COPY ../../package*.json ./
+COPY package*.json ./
+
+COPY .env.local.rpc ./
+COPY .env.testnet.rpc ./
+COPY jest.config.local.rpc.js ./
+COPY jest.config.testnet.rpc.js ./
+COPY tsconfig.json ./
 
 RUN npm install
 
-# Copy the src directory and its contents
-COPY ../../src .
+COPY src/rpc-tests ./src/rpc-tests
+COPY src/utils ./src/utils
 
 EXPOSE 3000
 

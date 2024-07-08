@@ -17,14 +17,14 @@ jobs:
       - name: Build Docker image
         id: build_image
         run: docker build -t rpc-tests:latest .
-        working-directory: src/rpc-tests
+        working-directory: .
 
       - name: Run RPC tests
         id: run_tests
         run: |
           mkdir -p reports
           docker run --rm -e PRIVATE_KEY=${{ secrets.QA_PRIVATE_KEY }} -v ${{ github.workspace }}/src/rpc-tests/reports:/usr/src/app/reports rpc-tests:latest 2>&1 | tee reports/test_output.txt
-        working-directory: src/rpc-tests
+        working-directory: .
         continue-on-error: true
 
       - name: Parse Test Results
@@ -66,7 +66,6 @@ jobs:
 
           if [ "$OVERALL_STATUS" == "failure" ]; then
             exit 1
-          fi
 
       - name: Send Slack Notification
         if: always()
