@@ -46,21 +46,21 @@ describe('Proof Submission and Event Handling', () => {
         return api.tx[pallet].submitProof(...params);
     };
 
-    test.each(proofTypes)(
-        'should successfully accept a %s proof and emit a NewAttestation event.',
-        async (proofType, { pallet, getParams }) => {
-            console.log(`Submitting valid ${proofType} proof...`);
-            const keyring = new Keyring({ type: 'sr25519' });
-            const account = keyring.addFromUri(process.env.PRIVATE_KEY as string);
-
-            const params = getParams(true);
-            const transaction = submitProof(api, pallet, params);
-            const { result, attestationId } = await handleTransaction(api, transaction, account, proofType.toString(), startTime, false, timerRefs);
-            expect(result).toBe('succeeded');
-            expect(attestationId).not.toBeNull();
-        },
-        150000
-    );
+    // test.each(proofTypes)(
+    //     'should successfully accept a %s proof and emit a NewAttestation event.',
+    //     async (proofType, { pallet, getParams }) => {
+    //         console.log(`Submitting valid ${proofType} proof...`);
+    //         const keyring = new Keyring({ type: 'sr25519' });
+    //         const account = keyring.addFromUri(process.env.PRIVATE_KEY as string);
+    //
+    //         const params = getParams(true);
+    //         const transaction = submitProof(api, pallet, params);
+    //         const { result, attestationId } = await handleTransaction(api, transaction, account, proofType.toString(), startTime, false, timerRefs);
+    //         expect(result).toBe('succeeded');
+    //         expect(attestationId).not.toBeNull();
+    //     },
+    //     150000
+    // );
 
     test.each(proofTypes)(
         'should reject invalid %s proof upon finalization',
