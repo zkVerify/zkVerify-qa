@@ -39,7 +39,6 @@ Locate "Deployed Contract" and copy the value.
 ### Environment Setup
 
 1. Set the .env ZKV_CONTRACT value to the Deployed Contract address obtained from the Anvil node.
-2. Set the .env proof valid and invalid values.
 
 ## Running Tests
 
@@ -52,7 +51,7 @@ npm --prefix ../../ run test:e2e
 Uses proof data from `/data` directory
 
 ```bash
-ts-node ./scripts/submit_proof.ts fflonk
+npx ts-node ../utils/scripts/submit_proof.ts fflonk
 ```
 
 ## Anvil Standalone Setup

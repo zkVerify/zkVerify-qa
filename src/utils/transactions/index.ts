@@ -115,19 +115,22 @@ export const handleTransaction = async (
 
     return new Promise<{ result: string, attestationId: string | null }>((resolve, reject) => {
         let isFinalized = false;
-
         // Set timeout for transaction finalization
         timerRefs.timeout = setTimeout(() => {
             clearResources(timerRefs);
             reject(new Error(`Test timed out waiting for ${validityPrefix} ${proofType} proof transaction finalization`));
         }, 60000) as NodeJS.Timeout;
-
         // Sign and send the transaction
         submitProof.signAndSend(account, async ({ events, status, dispatchError }) => {
             try {
+                if (dispatchError) {
+                    clearResources(timerRefs);
+                    console.error(`${validityPrefix} ${proofType} Transaction failed with dispatch error: ${dispatchError}`);
+                    reject(dispatchError);
+                    return;
+                }
                 if (status.isInBlock) {
                     handleInBlock(events, proofType, startTime, status.asInBlock.toString(), setAttestationId, expectsError);
-
                     // Set interval to log waiting status
                     timerRefs.interval = setInterval(() => {
                         if (!isFinalized) {
@@ -136,7 +139,6 @@ export const handleTransaction = async (
                         }
                     }, 5000) as NodeJS.Timeout;
                 }
-
                 if (status.isFinalized) {
                     isFinalized = true;
                     clearResources(timerRefs);
