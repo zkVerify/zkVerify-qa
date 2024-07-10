@@ -16,20 +16,19 @@ jobs:
 
       - name: Build Docker image
         id: build_image
-        run: |
-          cd rpc-tests
-          docker build -t rpc-tests:latest .
+        run: docker build -t rpc-tests:latest -f src/rpc-tests/Dockerfile .
+        working-directory: .
 
       - name: Run RPC tests
         id: run_tests
         run: |
-          mkdir -p rpc-tests/reports
-          docker run --rm -e PRIVATE_KEY=${{ secrets.QA_PRIVATE_KEY }} -v ${{ github.workspace }}/rpc-tests/reports:/usr/src/app/reports rpc-tests:latest 2>&1 | tee rpc-tests/reports/test_output.txt
-        continue-on-error: true
+          mkdir -p src/rpc-tests/reports
+          docker run --rm -e PRIVATE_KEY=${{ secrets.QA_PRIVATE_KEY }} -v ${{ github.workspace }}/src/rpc-tests/reports:/usr/src/app/reports rpc-tests:latest 2>&1 | tee src/rpc-tests/reports/test_output.txt
+        working-directory: .
 
       - name: Parse Test Results
         run: |
-          TEST_OUTPUT=$(cat ${{ github.workspace }}/rpc-tests/reports/test_output.txt)
+          TEST_OUTPUT=$(cat src/rpc-tests/reports/test_output.txt)
           
           PASSED=0
           FAILED=0

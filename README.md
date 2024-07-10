@@ -6,6 +6,10 @@ RPC schema and valid/invalid proof submission tests.
 
 Further details in rpc-tests README
 
+```shell
+npm run test:rpc:testnet
+```
+
 ### e2e
 
 Spins up 3 zkVerify nodes, attestation bot & an Anvil ethereum node locally using latest code from the repos. 
@@ -13,6 +17,11 @@ Spins up 3 zkVerify nodes, attestation bot & an Anvil ethereum node locally usin
 Submits proofs and checks attestation is collected and posted to Ethereum.
 
 Further details in e2e README.
+
+
+```shell
+npm run test:e2e
+```
 
 ## GitHub Actions Workflow with Act
 

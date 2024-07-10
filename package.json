@@ -1,0 +1,47 @@
+{
+  "name": "zkverify_qa",
+  "version": "1.0.0",
+  "description": "zkVerify QA Scripts & Tests",
+  "author": "Horizen Labs <info@horizenlabs.io>",
+  "license": "ISC",
+  "scripts": {
+    "test:e2e": "cp .env.local.e2e .env && jest --config=jest.config.e2e.js --forceExit --verbose",
+    "test:rpc:local": "cp .env.local.rpc .env && jest --config=jest.config.local.rpc.js --verbose",
+    "test:rpc:testnet": "cp .env.testnet.rpc .env && jest --config=jest.config.testnet.rpc.js --forceExit --verbose"
+  },
+  "dependencies": {
+    "@polkadot/api": "^11.0.3",
+    "async-mutex": "^0.5.0",
+    "axios": "1.4.0",
+    "debug": "^4.3.4",
+    "dotenv": "^16.4.5",
+    "web3": "^4.9.0",
+    "yaml": "2.3.0"
+  },
+  "devDependencies": {
+    "@babel/preset-env": "7.21.5",
+    "@babel/preset-typescript": "7.21.5",
+    "@jest/globals": "29.5.0",
+    "@types/debug": "^4.1.12",
+    "@types/jest": "^29.5.1",
+    "@types/node": "20.1.1",
+    "@types/web3": "^1.2.2",
+    "babel-jest": "29.5.0",
+    "bn": "^1.0.5",
+    "bn.js": "^5.2.1",
+    "canonical-weth": "^1.4.0",
+    "jest": "29.5.0",
+    "jest-html-reporter": "3.10.0",
+    "ts-jest": "29.1.0",
+    "typescript": "5.0.4"
+  },
+  "jest": {
+    "transform": {
+      "^.+\\.[t|j]sx?$": "babel-jest"
+    },
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "/services/"
+    ]
+  }
+}
