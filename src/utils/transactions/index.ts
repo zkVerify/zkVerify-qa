@@ -47,6 +47,7 @@ const handleInBlock = (
  * @param dispatchError - Any dispatch error that occurred.
  * @param api - The ApiPromise instance.
  * @param startTime - The start time of the transaction.
+ * @param skipAttestation - Boolean indicating if attestation wait should be skipped.
  * @returns A promise that resolves to a string indicating the result.
  */
 const handleFinalized = async (
@@ -55,7 +56,8 @@ const handleFinalized = async (
     attestationId: string | null,
     dispatchError: any,
     api: ApiPromise,
-    startTime: number
+    startTime: number,
+    skipAttestation: boolean
 ): Promise<string> => {
     const validityPrefix = expectsError ? "Invalid" : "Valid";
     console.log(`${validityPrefix} ${proofType} Transaction finalized (elapsed time: ${(Date.now() - startTime) / 1000} seconds)`);
@@ -72,12 +74,16 @@ const handleFinalized = async (
             throw new Error('Transaction was expected to fail but succeeded.');
         } else {
             if (attestationId) {
-                const eventData = await waitForNewAttestation(api, 360000, attestationId, startTime);
-                const [id, proofsAttestation] = eventData;
-                if (Number.isInteger(id) && /^0x[a-fA-F0-9]{64}$/.test(proofsAttestation)) {
-                    return 'succeeded';
+                if (!skipAttestation) {
+                    const eventData = await waitForNewAttestation(api, 360000, attestationId, startTime);
+                    const [id, proofsAttestation] = eventData;
+                    if (Number.isInteger(id) && /^0x[a-fA-F0-9]{64}$/.test(proofsAttestation)) {
+                        return 'succeeded';
+                    } else {
+                        throw new Error('Invalid attestation data.');
+                    }
                 } else {
-                    throw new Error('Invalid attestation data.');
+                    return 'succeeded';
                 }
             } else {
                 throw new Error('No attestation ID found.');
@@ -95,6 +101,8 @@ const handleFinalized = async (
  * @param startTime - The start time of the transaction.
  * @param expectsError - Boolean indicating if an error is expected.
  * @param timerRefs - An object containing interval and timeout references.
+ * @param nonce - Optional nonce value for the transaction.
+ * @param skipAttestation - Boolean indicating if attestation wait should be skipped.
  * @returns A promise that resolves to an object containing the result and attestation ID.
  */
 export const handleTransaction = async (
@@ -104,7 +112,9 @@ export const handleTransaction = async (
     proofType: string,
     startTime: number,
     expectsError = false,
-    timerRefs: { interval: NodeJS.Timeout | null, timeout: NodeJS.Timeout | null }
+    timerRefs: { interval: NodeJS.Timeout | null, timeout: NodeJS.Timeout | null },
+    nonce?: number,
+    skipAttestation = false
 ): Promise<{ result: string, attestationId: string | null }> => {
     const validityPrefix = expectsError ? "Invalid" : "Valid";
     let attestation_id: string | null = null;
@@ -123,7 +133,7 @@ export const handleTransaction = async (
         }, 60000) as NodeJS.Timeout;
 
         // Sign and send the transaction
-        submitProof.signAndSend(account, async ({ events, status, dispatchError }) => {
+        submitProof.signAndSend(account, { nonce }, async ({ events, status, dispatchError }) => {
             try {
                 if (status.isInBlock) {
                     handleInBlock(events, proofType, startTime, status.asInBlock.toString(), setAttestationId, expectsError);
@@ -140,7 +150,7 @@ export const handleTransaction = async (
                 if (status.isFinalized) {
                     isFinalized = true;
                     clearResources(timerRefs);
-                    const result = await handleFinalized(proofType, expectsError, attestation_id, dispatchError, api, startTime);
+                    const result = await handleFinalized(proofType, expectsError, attestation_id, dispatchError, api, startTime, skipAttestation);
                     resolve({ result, attestationId: attestation_id });
                 }
             } catch (error) {
