@@ -124,10 +124,14 @@ export const handleTransaction = async (
         submitProof.signAndSend(account, async ({ events, status, dispatchError }) => {
             try {
                 if (dispatchError) {
-                    clearResources(timerRefs);
-                    console.error(`${validityPrefix} ${proofType} Transaction failed with dispatch error: ${dispatchError}`);
-                    reject(dispatchError);
-                    return;
+                    if (expectsError) {
+                        console.error(`${validityPrefix} ${proofType} Transaction failed with dispatch error: ${dispatchError}`);
+                    } else {
+                        clearResources(timerRefs);
+                        console.error(`${validityPrefix} ${proofType} Transaction unexpectedly failed with dispatch error: ${dispatchError}`);
+                        reject(new Error(dispatchError.toString()));
+                        return;
+                    }
                 }
                 if (status.isInBlock) {
                     handleInBlock(events, proofType, startTime, status.asInBlock.toString(), setAttestationId, expectsError);
