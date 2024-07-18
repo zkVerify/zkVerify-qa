@@ -27,12 +27,9 @@ npm install
 
 ## Proof Specific Setup
 
-### groth16
-
-*Note* All files are already committed and pregenerated but if you wish to do it again there is a setup.sh you can run:
+All files are already committed and pregenerated but if you wish to do it again there is a setup.sh you can run and specify the proof type:
 ```sh
-cd groth16
-./setup.sh
+./setup.sh groth16
 ```
 
 ## Running the Proof Generation and Submission Script
@@ -51,7 +48,7 @@ npm run generate:groth16 5 60
 ```
 2. Run the file directly with ts-node
 ```shell
-npx ts-node src/proof-generator/index.ts 5 60 true
+npx ts-node src/proof-generator/index.ts 5 60 true groth16,fflonk
 ```
 
 ## Generating and sending a single unique groth16 proof

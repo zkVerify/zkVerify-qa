@@ -3,11 +3,12 @@ import { ApiPromise, WsProvider } from '@polkadot/api';
 import { Keyring } from '@polkadot/keyring';
 import { KeyringPair } from '@polkadot/keyring/types';
 import { createApi, waitForNodeToSync } from '../utils/helpers';
-import { generateAndVerifyProof } from './groth16';
 import { handleTransaction } from '../utils/transactions';
 import { Mutex } from 'async-mutex';
 import BN from 'bn.js';
 import { SubmittableExtrinsic } from '@polkadot/api/types';
+import { generateAndVerifyProof } from './common/generate-proof';
+import { proofTypeToPallet } from './config';
 
 /**
  * Validate required environment variables.
@@ -44,7 +45,6 @@ const submitProof = (api: ApiPromise, pallet: string, params: any[]): Submittabl
  * @param {ApiPromise} api - The API instance.
  * @param {KeyringPair} account - The account to use for sending the transaction.
  * @param {string} proofType - The type of the proof.
- * @param {string} pallet - The pallet name.
  * @param {(valid: boolean) => any[]} getParams - Function to get the parameters for the transaction.
  * @param {{ [key: string]: number }} proofCounter - Object to keep track of the number of proofs sent.
  * @param {Mutex} nonceMutex - Mutex to handle nonce updates.
@@ -56,7 +56,6 @@ const sendProof = async (
     api: ApiPromise,
     account: KeyringPair,
     proofType: string,
-    pallet: string,
     getParams: (valid: boolean) => any[],
     proofCounter: { [key: string]: number },
     nonceMutex: Mutex,
@@ -64,7 +63,10 @@ const sendProof = async (
     skipAttestation: boolean
 ): Promise<void> => {
     const params = getParams(true);
-    console.log("Parameters passed to Substrate pallet:", params);
+    const pallet = proofTypeToPallet[proofType];
+    if (!pallet) {
+        throw new Error(`Pallet name not found for proof type: ${proofType}`);
+    }
 
     const transaction = submitProof(api, pallet, params);
     let currentNonce!: number;
@@ -107,52 +109,68 @@ const main = async (): Promise<void> => {
     const initialNonce: BN = await api.rpc.system.accountNextIndex(account.address) as unknown as BN;
     const nonce = { value: initialNonce.toNumber() };
 
+    const proofTypes = (process.argv[4] || 'groth16').split(',');
     const proofCounter: { [key: string]: number } = {};
-    proofCounter["groth16"] = 0;
+    proofTypes.forEach(proofType => {
+        proofCounter[proofType] = 0;
+    });
 
-    // Convert interval and duration from seconds to milliseconds
+    const unknownProofTypes: string[] = proofTypes.filter(pt => !proofTypeToPallet.hasOwnProperty(pt));
+    if (unknownProofTypes.length > 0) {
+        console.warn(`The following proof types are not configured in proofTypeToPallet mapping: ${unknownProofTypes.join(', ')}`);
+        console.warn('Consider adding them to the proofTypeToPallet mapping in the configuration file.');
+    }
+
     const interval = (parseInt(process.argv[2], 10) || 5) * 1000;
     const duration = (parseInt(process.argv[3], 10) || 60) * 1000;
-    const skipAttestation = process.argv[4] === 'true';
+    const skipAttestation = process.argv[5] === 'true';
 
-    const startTime = Date.now();
-    const endTime = startTime + duration;
+    try {
+        const startTime = Date.now();
+        const endTime = startTime + duration;
 
-    const nonceMutex = new Mutex();
+        const nonceMutex = new Mutex();
 
-    const intervalId = setInterval(async () => {
-        if (Date.now() > endTime) {
-            clearInterval(intervalId);
-            console.log(`Final counts of proofs sent (total time: ${((Date.now() - startTime) / 1000).toFixed(2)}s):`);
-            console.log(`groth16: ${proofCounter["groth16"]}`);
-            if (api) await api.disconnect();
-            if (provider) await provider.disconnect();
-            process.exit(0);
-        } else {
-            try {
-                console.log("Generating the proof");
-                const { proof, publicSignals, vk } = await generateAndVerifyProof();
+        const intervalId = setInterval(async () => {
+            if (Date.now() > endTime) {
+                clearInterval(intervalId);
+                console.log(`Final counts of proofs sent (total time: ${((Date.now() - startTime) / 1000).toFixed(2)}s):`);
+                proofTypes.forEach(proofType => {
+                    console.log(`${proofType}: ${proofCounter[proofType]}`);
+                });
+                if (api) await api.disconnect();
+                if (provider) await provider.disconnect();
+                process.exit(0);
+            } else {
+                for (const proofType of proofTypes) {
+                    try {
+                        console.log(`Generating the ${proofType} proof`);
+                        const { proof, publicSignals, vk } = await generateAndVerifyProof(proofType);
+                        const proofParams = [
+                            { 'Vk': vk },
+                            proof,
+                            publicSignals
+                        ];
 
-                const proofParams = [
-                    { 'Vk': vk },
-                    proof,
-                    publicSignals
-                ];
-
-                console.log("Sending the proof");
-                sendProof(api, account, "groth16", "settlementGroth16Pallet", () => proofParams, proofCounter, nonceMutex, nonce, skipAttestation).catch(console.error);
-            } catch (error) {
-                console.error(`Failed to send proof: ${error}`);
+                        console.log(`Sending the ${proofType} proof`);
+                        await sendProof(api, account, proofType, () => proofParams, proofCounter, nonceMutex, nonce, skipAttestation);
+                    } catch (error) {
+                        console.error(`Failed to send ${proofType} proof: ${error}`);
+                    }
+                }
             }
-        }
-    }, interval);
+        }, interval);
 
-    await new Promise<void>((resolve) => {
-        setTimeout(() => {
-            clearInterval(intervalId);
-            resolve();
-        }, duration);
-    });
+        await new Promise<void>((resolve) => {
+            setTimeout(() => {
+                clearInterval(intervalId);
+                resolve();
+            }, duration);
+        });
+    } catch (error) {
+        console.error(`Failed to load proof types: ${(error as Error).message}`);
+        process.exit(1);
+    }
 };
 
 main().catch(console.error);
