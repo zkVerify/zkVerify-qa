@@ -5,7 +5,7 @@
 Issue the following commands from the top level directory:
 ```sh
 npm install;
-cp .env.testnet .env;
+cp .env.testnet.rpc .env
 ```
 
 ### Running the tests
