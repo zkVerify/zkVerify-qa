@@ -146,6 +146,8 @@ const main = async (): Promise<void> => {
                     try {
                         console.log(`Generating the ${proofType} proof`);
                         const { proof, publicSignals, vk } = await generateAndVerifyProof(proofType);
+                        // TODO: Remove log
+                        console.log(`pubs: ` + publicSignals)
                         const proofParams = [
                             { 'Vk': vk },
                             proof,

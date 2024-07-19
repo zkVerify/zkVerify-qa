@@ -9,7 +9,6 @@ const nodeCrypto = require("crypto");
 /**
  * Generates a unique input for the zk-SNARK proof.
  * This input is created using a combination of a random value and the current timestamp.
- * The inputs are then hashed using SHA-256 and split into two hex strings.
  *
  * @returns {{ a: string; b: string }} An object containing two unique hex strings.
  */
@@ -22,6 +21,25 @@ function generateUniqueInput(): { a: string; b: string } {
     const b = "0x" + hash.slice(32, 64);
 
     return { a, b };
+}
+
+/**
+ * Writes the input JSON file to a unique filename with a timestamp in the data folder.
+ *
+ * @param {string} proofType - The type of proof.
+ * @param {object} inputJson - The input JSON object.
+ * @returns {string} The unique filename created.
+ */
+function writeInputJsonFile(proofType: string, inputJson: object): string {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const dataDir = path.join(__dirname, `../../${proofType}/circuit/data`);
+
+    fs.mkdirSync(dataDir, { recursive: true });
+
+    const uniqueFilename = path.join(dataDir, `input-${timestamp}.json`);
+    fs.writeFileSync(uniqueFilename, JSON.stringify(inputJson, null, 2));
+
+    return uniqueFilename;
 }
 
 /**
@@ -114,7 +132,7 @@ export async function generateAndVerifyProof(proofType: string): Promise<ProofDa
         b: input.b,
     };
 
-    fs.writeFileSync(path.join(__dirname, `../../${proofType}/circuit/input.json`), JSON.stringify(inputJson, null, 2));
+    writeInputJsonFile(proofType, inputJson);
 
     await generateWitness(inputJson, circuitWasm, witnessFile);
 
