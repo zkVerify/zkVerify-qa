@@ -16,7 +16,7 @@ Spins up 3 zkVerify nodes, attestation bot & an Anvil ethereum node locally usin
 
 Submits proofs and checks attestation is collected and posted to Ethereum.
 
-Further details in e2e README.
+Further details in e2e-tests README.
 
 
 ```shell

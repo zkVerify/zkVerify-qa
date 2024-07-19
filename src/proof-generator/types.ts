@@ -14,3 +14,8 @@ export interface ProofData<T> {
     publicSignals: string[];
     vk: any;
 }
+
+export interface ProofHandler {
+    formatProof(proof: any, publicSignals?: string[]): any;
+    formatVk(vkJson: any): any;
+}

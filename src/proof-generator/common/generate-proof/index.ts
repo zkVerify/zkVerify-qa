@@ -1,6 +1,6 @@
-import { ProofData } from "../../types";
+import { ProofData, ProofHandler } from "../../types";
 import { formatScalar } from "../../utils";
-import { getProofUtils } from "../proof-utils";
+import { getProofHandler } from "../proof-utils";
 const snarkjs = require("snarkjs");
 const fs = require("fs");
 const path = require("path");
@@ -11,7 +11,7 @@ const nodeCrypto = require("crypto");
  * This input is created using a combination of a random value and the current timestamp.
  * The inputs are then hashed using SHA-256 and split into two hex strings.
  *
- * @returns { a: string; b: string } - An object containing two unique hex strings.
+ * @returns {{ a: string; b: string }} An object containing two unique hex strings.
  */
 function generateUniqueInput(): { a: string; b: string } {
     const randomValue = nodeCrypto.randomBytes(32).toString('hex');
@@ -24,6 +24,15 @@ function generateUniqueInput(): { a: string; b: string } {
     return { a, b };
 }
 
+/**
+ * Generates a witness file for the zk-SNARK proof.
+ *
+ * @param {{ a: string; b: string }} input - The unique input for the zk-SNARK proof.
+ * @param {string} circuitWasm - The path to the circuit WASM file.
+ * @param {string} witnessFile - The path to the witness file to be generated.
+ * @returns {Promise<void>} A promise that resolves when the witness file is generated.
+ * @throws {Error} If the witness file is not found after generation.
+ */
 async function generateWitness(input: { a: string; b: string }, circuitWasm: string, witnessFile: string): Promise<void> {
     await snarkjs.wtns.calculate(input, circuitWasm, witnessFile);
     console.log("Witness generated and written to", witnessFile);
@@ -33,24 +42,36 @@ async function generateWitness(input: { a: string; b: string }, circuitWasm: str
     }
 }
 
+/**
+ * Generates and verifies a zk-SNARK proof.
+ *
+ * @param {string} proofType - The type of proof to generate.
+ * @param {string} provingKey - The path to the proving key file.
+ * @param {string} witnessFile - The path to the witness file.
+ * @param {string} verificationKeyPath - The path to the verification key file.
+ * @param {ProofHandler} proofHandler - The handler to format proof and verification key.
+ * @returns {Promise<ProofData<any>>} A promise that resolves to the generated proof data.
+ * @throws {Error} If the generated proof is invalid.
+ */
 async function proveAndVerify(
     proofType: string,
     provingKey: string,
     witnessFile: string,
     verificationKeyPath: string,
-    formatProof: (proof: any) => any,
-    formatVk: (vkJson: any) => any
+    proofHandler: ProofHandler
 ): Promise<ProofData<any>> {
     const { proof, publicSignals } = await snarkjs[proofType].prove(provingKey, witnessFile);
     const vkJson = JSON.parse(fs.readFileSync(verificationKeyPath, "utf8"));
 
+    const formattedProof = proofHandler.formatProof(proof, publicSignals);
+
     const proofData: ProofData<any> = {
         proof: {
             curve: "Bn254",
-            proof: formatProof(proof),
+            proof: formattedProof,
         },
         publicSignals: publicSignals.map(formatScalar),
-        vk: formatVk(vkJson),
+        vk: proofHandler.formatVk(vkJson),
     };
 
     const isValid = await snarkjs[proofType].verify(vkJson, publicSignals, proof);
@@ -64,8 +85,14 @@ async function proveAndVerify(
     return proofData;
 }
 
+/**
+ * Main function to generate and verify a zk-SNARK proof.
+ *
+ * @param {string} proofType - The type of proof to generate.
+ * @returns {Promise<ProofData<any>>} A promise that resolves to the generated proof data.
+ * @throws {Error} If any required file is not found.
+ */
 export async function generateAndVerifyProof(proofType: string): Promise<ProofData<any>> {
-
     const circuitWasm = path.join(__dirname, `../../${proofType}/circuit/circuit.wasm`);
     const provingKey = path.join(__dirname, `../../${proofType}/circuit/zkey/circuit_final.zkey`);
     const verificationKeyPath = path.join(__dirname, `../../${proofType}/circuit/zkey/verification_key.json`);
@@ -91,7 +118,7 @@ export async function generateAndVerifyProof(proofType: string): Promise<ProofDa
 
     await generateWitness(inputJson, circuitWasm, witnessFile);
 
-    const { formatProof, formatVk } = await getProofUtils(proofType);
+    const proofHandler = await getProofHandler(proofType);
 
-    return proveAndVerify(proofType, provingKey, witnessFile, verificationKeyPath, formatProof, formatVk);
+    return proveAndVerify(proofType, provingKey, witnessFile, verificationKeyPath, proofHandler);
 }

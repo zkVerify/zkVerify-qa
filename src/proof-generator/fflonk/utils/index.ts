@@ -3,11 +3,11 @@ import { FflonkVerificationKey } from "../types";
 /**
  * Converts a 256-bit big-endian unsigned integer to a hexadecimal string.
  *
- * @param {bigint} value - The value to convert.
+ * @param {bigint | string} value - The value to convert.
  * @returns {string} - The hexadecimal string representation of the value.
  */
-export const toBigEndianHex = (value: bigint): string => {
-    return '0x' + value.toString(16).padStart(64, '0');
+export const toBigEndianHex = (value: bigint | string): string => {
+    return '0x' + BigInt(value).toString(16).padStart(64, '0');
 };
 
 /**
@@ -30,3 +30,15 @@ export const formatVk = (vkJson: any): FflonkVerificationKey => {
         C0: vkJson.C0.map((val: string) => toBigEndianHex(BigInt(val))),
     };
 };
+
+/**
+ * Formats the FFLONK proof data.
+ *
+ * @param {any} proof - The raw proof data.
+ * @returns {string} - The formatted proof data.
+ */
+export const formatProof = (proof: any, publicSignals: string[]): string => {
+    // TODO: Implement formatting logic
+    return '0x';
+};
+
