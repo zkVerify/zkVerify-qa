@@ -32,7 +32,7 @@ services:
 
   attestation-bot:
     build:
-      context: ./services/nh-attestation-bot
+      context: ./services/nh-attestation-bot/bot
       dockerfile: Dockerfile
     volumes:
       - contract-data:/data
