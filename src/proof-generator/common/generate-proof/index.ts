@@ -6,6 +6,7 @@ const fs = require("fs");
 const path = require("path");
 const nodeCrypto = require("crypto");
 
+
 /**
  * Generates a unique input for the zk-SNARK proof.
  * This input is created using a combination of a random value and the current timestamp.
@@ -28,10 +29,10 @@ function generateUniqueInput(): { a: string; b: string } {
  *
  * @param {string} proofType - The type of proof.
  * @param {object} inputJson - The input JSON object.
+ * @param {string} timestamp - The timestamp to use for the filename.
  * @returns {string} The unique filename created.
  */
-function writeInputJsonFile(proofType: string, inputJson: object): string {
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+function writeInputJsonFile(proofType: string, inputJson: object, timestamp: string): string {
     const dataDir = path.join(__dirname, `../../${proofType}/circuit/data`);
 
     fs.mkdirSync(dataDir, { recursive: true });
@@ -43,21 +44,34 @@ function writeInputJsonFile(proofType: string, inputJson: object): string {
 }
 
 /**
- * Generates a witness file for the zk-SNARK proof.
+ * Generates a witness file for the zk-SNARK proof using the custom generate_witness.js script.
  *
- * @param {{ a: string; b: string }} input - The unique input for the zk-SNARK proof.
  * @param {string} circuitWasm - The path to the circuit WASM file.
- * @param {string} witnessFile - The path to the witness file to be generated.
+ * @param {string} inputFilePath - The path to the input JSON file.
+ * @param {string} witnessFilePath - The path to the witness file to be generated.
  * @returns {Promise<void>} A promise that resolves when the witness file is generated.
  * @throws {Error} If the witness file is not found after generation.
  */
-async function generateWitness(input: { a: string; b: string }, circuitWasm: string, witnessFile: string): Promise<void> {
-    await snarkjs.wtns.calculate(input, circuitWasm, witnessFile);
-    console.log("Witness generated and written to", witnessFile);
+async function generateWitness(circuitWasm: string, inputFilePath: string, witnessFilePath: string): Promise<void> {
+    const generateWitnessScript = path.join(path.dirname(circuitWasm), 'generate_witness.js');
+    const cmd = `node ${generateWitnessScript} ${circuitWasm} ${inputFilePath} ${witnessFilePath}`;
 
-    if (!fs.existsSync(witnessFile)) {
-        throw new Error(`Witness file not found at ${witnessFile}`);
-    }
+    const { exec } = require('child_process');
+    return new Promise<void>((resolve, reject) => {
+        exec(cmd, (error: any, stdout: string, stderr: string) => {
+            if (error) {
+                console.error("Error generating witness:", stderr);
+                reject(`Error generating witness: ${stderr}`);
+                return;
+            }
+
+            if (!fs.existsSync(witnessFilePath)) {
+                reject(`Witness file not found at ${witnessFilePath}`);
+                return;
+            }
+            resolve();
+        });
+    });
 }
 
 /**
@@ -65,7 +79,7 @@ async function generateWitness(input: { a: string; b: string }, circuitWasm: str
  *
  * @param {string} proofType - The type of proof to generate.
  * @param {string} provingKey - The path to the proving key file.
- * @param {string} witnessFile - The path to the witness file.
+ * @param {string} witnessFilePath - The path to the witness file.
  * @param {string} verificationKeyPath - The path to the verification key file.
  * @param {ProofHandler} proofHandler - The handler to format proof and verification key.
  * @returns {Promise<ProofData<any>>} A promise that resolves to the generated proof data.
@@ -74,13 +88,13 @@ async function generateWitness(input: { a: string; b: string }, circuitWasm: str
 async function proveAndVerify(
     proofType: string,
     provingKey: string,
-    witnessFile: string,
+    witnessFilePath: string,
     verificationKeyPath: string,
     proofHandler: ProofHandler
 ): Promise<ProofData<any>> {
-    const { proof, publicSignals } = await snarkjs[proofType].prove(provingKey, witnessFile);
+    const { proof, publicSignals } = await snarkjs[proofType].prove(provingKey, witnessFilePath);
     const vkJson = JSON.parse(fs.readFileSync(verificationKeyPath, "utf8"));
-
+    console.log(`pubs: ${publicSignals}`)
     const formattedProof = proofHandler.formatProof(proof, publicSignals);
 
     const proofData: ProofData<any> = {
@@ -111,10 +125,9 @@ async function proveAndVerify(
  * @throws {Error} If any required file is not found.
  */
 export async function generateAndVerifyProof(proofType: string): Promise<ProofData<any>> {
-    const circuitWasm = path.join(__dirname, `../../${proofType}/circuit/circuit.wasm`);
+    const circuitWasm = path.join(__dirname, `../../${proofType}/circuit/circuit_js/circuit.wasm`);
     const provingKey = path.join(__dirname, `../../${proofType}/circuit/zkey/circuit_final.zkey`);
     const verificationKeyPath = path.join(__dirname, `../../${proofType}/circuit/zkey/verification_key.json`);
-    const witnessFile = path.join(__dirname, `../../${proofType}/circuit/witness.wtns`);
 
     if (!fs.existsSync(circuitWasm)) {
         throw new Error(`Circuit WASM file not found at ${circuitWasm}`);
@@ -132,11 +145,14 @@ export async function generateAndVerifyProof(proofType: string): Promise<ProofDa
         b: input.b,
     };
 
-    writeInputJsonFile(proofType, inputJson);
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const inputFilePath = writeInputJsonFile(proofType, inputJson, timestamp);
 
-    await generateWitness(inputJson, circuitWasm, witnessFile);
+    const witnessFilePath = path.join(__dirname, `../../${proofType}/circuit/data`, `witness-${timestamp}.wtns`);
+
+    await generateWitness(circuitWasm, inputFilePath, witnessFilePath);
 
     const proofHandler = await getProofHandler(proofType);
 
-    return proveAndVerify(proofType, provingKey, witnessFile, verificationKeyPath, proofHandler);
+    return proveAndVerify(proofType, provingKey, witnessFilePath, verificationKeyPath, proofHandler);
 }

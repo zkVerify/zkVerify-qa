@@ -4,7 +4,7 @@ import { formatProof as formatFflonkProof, formatVk as formatFflonkVk } from "..
 
 class FflonkHandler implements ProofHandler {
     formatProof(proof: any, publicSignals: string[]): string {
-        return formatFflonkProof(proof, publicSignals);
+        return formatFflonkProof(proof);
     }
 
     formatVk(vkJson: any): FflonkVerificationKey {

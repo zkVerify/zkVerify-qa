@@ -12,9 +12,3 @@ export interface FflonkVerificationKey {
     X_2: string[][];
     C0: string[];
 }
-
-export interface FflonkProofData extends ProofData<FflonkVerificationKey> {
-    pubs: string;
-    vkeyHash: string;
-    statementHash: string;
-}

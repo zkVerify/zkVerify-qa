@@ -11,7 +11,7 @@ export interface Proof<T> {
 
 export interface ProofData<T> {
     proof: Proof<T>;
-    publicSignals: string[];
+    publicSignals: string;
     vk: any;
 }
 

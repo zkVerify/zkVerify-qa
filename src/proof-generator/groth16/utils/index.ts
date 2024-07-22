@@ -32,3 +32,4 @@ export const formatVk = (vkJson: any): Groth16VerificationKey => {
         gamma_abc_g1: vkJson.IC.map((x: any) => formatG1Point(x)),
     };
 };
+

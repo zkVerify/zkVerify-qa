@@ -10,9 +10,30 @@ Generate unique proofs and submit them to zkVerify.
 ```sh
 npm install -g snarkjs
 ```
-- **circom**: This is a circuit compiler for zk-SNARKs.
+- **Rust**: Ensure you have Rust and Cargo installed. If you don't have Rust installed, you can install it using the following command:
 ```sh
-npm install -g circom
+cd
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+rustup self update
+rustup update stable
+echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.zshrc
+```
+- **circom**: Install circom on your machine, this is a circuit compiler for zk-SNARKs.
+```sh
+cd
+git clone https://github.com/iden3/circom.git ~/circom
+cd ~/circom
+cargo build --release
+```
+Export the path:
+```sh
+cd
+echo 'export PATH="$PATH:$HOME/circom/target/release"' >> ~/.zshrc 
+source ~/.zshrc
+```
+Verify the installation:
+```sh
+circom --version
 ```
 
 2. Update the .env.generator file values, in particular ensure you added your SEED PHRASE
@@ -48,12 +69,12 @@ npm run generate:groth16 5 60
 ```
 2. Run the file directly with ts-node
 ```shell
-npx ts-node src/proof-generator/index.ts 5 60 true groth16,fflonk
+npx ts-node src/proof-generator/index.ts 5 60 groth16,fflonk true
 ```
 
-## Generating and sending a single unique groth16 proof
+## Generating and sending a single unique proof
 ```shell
-npx ts-node src/proof-generator/groth16/send/index.ts
+npx ts-node src/proof-generator/common/send-proof/index.ts <proofType>
 ```
 
 ## Docker

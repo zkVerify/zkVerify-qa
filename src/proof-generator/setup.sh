@@ -15,10 +15,13 @@ if [ "$PROOF_TYPE" != "groth16" ] && [ "$PROOF_TYPE" != "fflonk" ]; then
   exit 1
 fi
 
-POWERS_OF_TAU_DIR="./powers_of_tau"
-CIRCUIT_DIR="$PROOF_TYPE/circuit"
+PROOF_GENERATOR_DIR=$(pwd)
+POWERS_OF_TAU_DIR="$PROOF_GENERATOR_DIR/powers-of-tau"
+CIRCUIT_DIR="$PROOF_GENERATOR_DIR/$PROOF_TYPE/circuit"
+CIRCUIT_JS_DIR="$CIRCUIT_DIR/circuit_js"
 ZKEY_DIR="${CIRCUIT_DIR}/zkey"
 PROOF_DIR="${CIRCUIT_DIR}/proof"
+DATA_DIR="${CIRCUIT_DIR}/data"
 
 # Check if Powers of Tau is already setup
 if [ ! -d "$POWERS_OF_TAU_DIR" ]; then
@@ -52,6 +55,7 @@ confirm_deletion "$CIRCUIT_DIR"
 mkdir -p "$CIRCUIT_DIR"
 mkdir -p "$ZKEY_DIR"
 mkdir -p "$PROOF_DIR"
+mkdir -p "$DATA_DIR"
 
 # Generate New Circuit
 echo "Generating new circuit..."
@@ -97,15 +101,28 @@ cat <<EOT > input.json
 {"a": 2, "b": 3}
 EOT
 
-snarkjs wtns calculate circuit.wasm input.json witness.wtns
-snarkjs wtns check circuit.r1cs witness.wtns
+echo "Running: node $CIRCUIT_JS_DIR/generate_witness.js $CIRCUIT_JS_DIR/circuit.wasm $CIRCUIT_DIR/input.json $CIRCUIT_DIR/witness.wtns"
+node "$CIRCUIT_JS_DIR/generate_witness.js" "$CIRCUIT_JS_DIR/circuit.wasm" "$CIRCUIT_DIR/input.json" "$CIRCUIT_DIR/witness.wtns"
 
-cd ../..
+if [ ! -f "$CIRCUIT_DIR/witness.wtns" ]; then
+  echo "Error: witness.wtns not found!"
+  exit 1
+fi
+
+snarkjs wtns check "$CIRCUIT_DIR/circuit.r1cs" "$CIRCUIT_DIR/witness.wtns"
+
+cd "$PROOF_GENERATOR_DIR"
 
 echo "Circuit generation completed."
 
 # Setup
 echo "Starting setup..."
+
+# Debug statements to print current directory and variable values
+echo "Current directory: $(pwd)"
+echo "CIRCUIT_DIR: $CIRCUIT_DIR"
+echo "POWERS_OF_TAU_DIR: $POWERS_OF_TAU_DIR"
+echo "ZKEY_DIR: $ZKEY_DIR"
 
 if [ "$PROOF_TYPE" = "groth16" ]; then
   snarkjs groth16 setup "$CIRCUIT_DIR/circuit.r1cs" "$POWERS_OF_TAU_DIR/pot14_final.ptau" "$ZKEY_DIR/circuit_0000.zkey"
@@ -147,7 +164,6 @@ if [ "$PROOF_TYPE" = "groth16" ]; then
   fi
 
   snarkjs zkey verify "$CIRCUIT_DIR/circuit.r1cs" "$POWERS_OF_TAU_DIR/pot14_final.ptau" "$ZKEY_DIR/circuit_final.zkey"
-
 fi
 
 # Export the verification key
