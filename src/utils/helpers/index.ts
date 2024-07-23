@@ -14,10 +14,18 @@ import {proofTypeToPallet} from "../../config";
  * @throws An error if the connection times out.
  */
 export async function createApi(provider: WsProvider): Promise<ApiPromise> {
+    console.log(`Connecting to WebSocket URL: ${process.env.WEBSOCKET}`);
     const timeout = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error(`Failed to connect to the WebSocket URL: ${process.env.WEBSOCKET}`)), 5000)
     );
-    return await Promise.race([ApiPromise.create({ provider }), timeout]);
+    try {
+        const api = await Promise.race([ApiPromise.create({ provider }), timeout]);
+        console.log(`Successfully connected to WebSocket URL: ${process.env.WEBSOCKET}`);
+        return api;
+    } catch (error) {
+        console.error(`Error connecting to WebSocket URL: ${process.env.WEBSOCKET}`, error);
+        throw error;
+    }
 }
 
 /**
@@ -93,14 +101,17 @@ export async function waitForNewAttestation(api: ApiPromise, timeoutDuration: nu
  * @returns A promise that resolves when the node is synced.
  */
 export async function waitForNodeToSync(api: ApiPromise): Promise<void> {
+    console.log("Waiting for the node to sync...");
     let isSyncing = true;
     while (isSyncing) {
         const health = await api.rpc.system.health();
         isSyncing = health.isSyncing.isTrue;
         if (isSyncing) {
+            console.log("Node is syncing...");
             await new Promise(resolve => setTimeout(resolve, 1000));
         }
     }
+    console.log("Node has finished syncing.");
 }
 
 /**
