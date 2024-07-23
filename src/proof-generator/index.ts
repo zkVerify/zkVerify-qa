@@ -1,43 +1,11 @@
-import 'dotenv/config';
-import { ApiPromise, WsProvider } from '@polkadot/api';
-import { Keyring } from '@polkadot/keyring';
-import { KeyringPair } from '@polkadot/keyring/types';
-import { createApi, waitForNodeToSync } from '../utils/helpers';
+import {initializeApi, submitProof, validateEnvVariables, validateProofTypes} from '../utils/helpers';
+import { generateAndVerifyProof } from './common/generate-proof';
 import { handleTransaction } from '../utils/transactions';
 import { Mutex } from 'async-mutex';
-import BN from 'bn.js';
-import { SubmittableExtrinsic } from '@polkadot/api/types';
-import { generateAndVerifyProof } from './common/generate-proof';
-import { proofTypeToPallet } from './config';
-
-/**
- * Validate required environment variables.
- *
- * @param {string[]} variables - List of environment variable names to validate.
- * @throws {Error} If any of the required environment variables is not set.
- */
-const validateEnvVariables = (variables: string[]): void => {
-    variables.forEach(envVar => {
-        if (!process.env[envVar]) {
-            throw new Error(`Required environment variable ${envVar} is not set.`);
-        }
-        if (envVar === 'PRIVATE_KEY' && process.env[envVar] === 'INSERT_SEED_PHRASE') {
-            throw new Error('The PRIVATE_KEY environment variable has not been set.');
-        }
-    });
-};
-
-/**
- * Create a SubmittableExtrinsic for submitting a proof.
- *
- * @param {ApiPromise} api - The API instance.
- * @param {string} pallet - The pallet name.
- * @param {any[]} params - The parameters to pass to the extrinsic.
- * @returns {SubmittableExtrinsic<'promise'>} The created SubmittableExtrinsic.
- */
-const submitProof = (api: ApiPromise, pallet: string, params: any[]): SubmittableExtrinsic<'promise'> => {
-    return api.tx[pallet].submitProof(...params);
-};
+import { proofTypeToPallet } from '../config';
+import { ApiPromise } from "@polkadot/api";
+import { KeyringPair } from "@polkadot/keyring/types";
+import 'dotenv/config';
 
 /**
  * Send a proof to the blockchain.
@@ -107,19 +75,12 @@ const main = async (): Promise<void> => {
     validateEnvVariables(['WEBSOCKET', 'PRIVATE_KEY']);
     console.log("Environment variables validated.");
 
-    const provider = new WsProvider(process.env.WEBSOCKET as string);
-    const api = await createApi(provider);
-    await waitForNodeToSync(api);
+    const { api, provider, account, nonce } = await initializeApi();
     console.log("API connected and node synced.");
 
-    const keyring = new Keyring({ type: 'sr25519' });
-    const account = keyring.addFromUri(process.env.PRIVATE_KEY as string);
-    console.log(`Using account: ${account.address}`);
-
-    const initialNonce: BN = await api.rpc.system.accountNextIndex(account.address) as unknown as BN;
-    const nonce = { value: initialNonce.toNumber() };
-
     const proofTypes = (process.argv[2] || 'groth16').split(',');
+    validateProofTypes(proofTypes);
+
     const interval = (parseInt(process.argv[3], 10) || 5) * 1000;
     const duration = (parseInt(process.argv[4], 10) || 60) * 1000;
     const skipAttestation = process.argv[5] === 'true';
@@ -130,12 +91,6 @@ const main = async (): Promise<void> => {
         proofCounter[proofType] = 0;
         errorCounter[proofType] = 0;
     });
-
-    const unknownProofTypes: string[] = proofTypes.filter(pt => !proofTypeToPallet.hasOwnProperty(pt));
-    if (unknownProofTypes.length > 0) {
-        console.warn(`The following proof types are not configured in proofTypeToPallet mapping: ${unknownProofTypes.join(', ')}`);
-        console.warn('Consider adding them to the proofTypeToPallet mapping in the configuration file.');
-    }
 
     const inProgressTransactions: Promise<void>[] = [];
     try {

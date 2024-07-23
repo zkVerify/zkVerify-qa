@@ -74,7 +74,7 @@ npx ts-node src/proof-generator/index.ts groth16,fflonk 5 60 true
 
 ## Generating and sending a single unique proof
 ```shell
-npx ts-node src/proof-generator/common/send-proof/index.ts <proofType>
+npx ts-node src/send-proof/index.ts <proofType> <skipAttestation Boolean>
 ```
 
 ## Docker

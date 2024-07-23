@@ -1,5 +1,22 @@
 # zkVerify-qa
 
+### Supported Proofs
+
+The list of supported proofs can be found in `config.ts`, add new proof types here if needed.
+
+### Send Proof
+
+Send a newly generated proof of a specific type by running:
+
+```shell
+npx ts-node src/send-proof/index.ts <proofType> <skipAttestation Boolean>
+```
+
+Example:
+```shell
+npx ts-node src/send-proof/index.ts groth16 true
+```
+
 ### rpc-tests
 
 RPC schema and valid/invalid proof submission tests.
