@@ -16,7 +16,7 @@ import {proofTypeToPallet} from "../../config";
 export async function createApi(provider: WsProvider): Promise<ApiPromise> {
     console.log(`Connecting to WebSocket URL: ${process.env.WEBSOCKET}`);
     const timeout = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error(`Failed to connect to the WebSocket URL: ${process.env.WEBSOCKET}`)), 5000)
+        setTimeout(() => reject(new Error(`Failed to connect to the WebSocket URL: ${process.env.WEBSOCKET}`)), 20000)
     );
     try {
         const api = await Promise.race([ApiPromise.create({ provider }), timeout]);
