@@ -12,6 +12,24 @@ export const clearResources = (timerRefs: { interval: NodeJS.Timeout | null, tim
     if (timerRefs.timeout) clearTimeout(timerRefs.timeout);
 };
 
+
+/**
+ * Decodes a dispatch error using the API metadata.
+ * @param api - The ApiPromise instance.
+ * @param dispatchError - The dispatch error to decode.
+ * @returns The decoded error message.
+ */
+const decodeDispatchError = (api: ApiPromise, dispatchError: any): string => {
+    if (dispatchError.isModule) {
+        const decoded = api.registry.findMetaError(dispatchError.asModule);
+        const { docs, name, section } = decoded;
+        return `${section}.${name}: ${docs.join(' ')}`;
+    } else {
+        return dispatchError.toString();
+    }
+};
+
+
 /**
  * Handles events when a transaction is included in a block.
  * @param events - The events emitted.
@@ -63,11 +81,12 @@ const handleFinalized = async (
     console.log(`${validityPrefix} ${proofType} Transaction finalized (elapsed time: ${(Date.now() - startTime) / 1000} seconds)`);
 
     if (dispatchError) {
+        const decodedError = decodeDispatchError(api, dispatchError);
         if (expectsError) {
-            console.log(`Invalid ${proofType} Transaction failed as expected with error.`);
+            console.log(`Invalid ${proofType} Transaction failed as expected with error: ${decodedError}`);
             return 'failed as expected';
         } else {
-            throw new Error(`Unexpected error: ${dispatchError.toString()}`);
+            throw new Error(`Unexpected error: ${decodedError}`);
         }
     } else {
         if (expectsError) {
@@ -136,12 +155,13 @@ export const handleTransaction = async (
         submitProof.signAndSend(account, { nonce }, async ({ events, status, dispatchError }) => {
             try {
                 if (dispatchError) {
+                    const decodedError = decodeDispatchError(api, dispatchError);
                     if (expectsError) {
-                        console.error(`${validityPrefix} ${proofType} Transaction failed with dispatch error: ${dispatchError}`);
+                        console.error(`${validityPrefix} ${proofType} Transaction failed with dispatch error: ${decodedError}`);
                     } else {
                         clearResources(timerRefs);
-                        console.error(`${validityPrefix} ${proofType} Transaction unexpectedly failed with dispatch error: ${dispatchError}`);
-                        reject(new Error(dispatchError.toString()));
+                        console.error(`${validityPrefix} ${proofType} Transaction unexpectedly failed with dispatch error: ${decodedError}`);
+                        reject(new Error(decodedError));
                         return;
                     }
                 }

@@ -1,5 +1,4 @@
 import { ProofData, ProofHandler } from "../../types";
-import { formatScalar } from "../../utils";
 import { getProofHandler } from "../proof-utils";
 const snarkjs = require("snarkjs");
 const fs = require("fs");
@@ -94,20 +93,14 @@ async function proveAndVerify(
 ): Promise<ProofData<any>> {
     const { proof, publicSignals } = await snarkjs[proofType].prove(provingKey, witnessFilePath);
     const vkJson = JSON.parse(fs.readFileSync(verificationKeyPath, "utf8"));
-    console.log(`pubs: ${publicSignals}`)
-    const formattedProof = proofHandler.formatProof(proof, publicSignals);
 
     const proofData: ProofData<any> = {
-        proof: {
-            curve: "Bn254",
-            proof: formattedProof,
-        },
-        publicSignals: publicSignals.map(formatScalar),
+        proof: proofHandler.formatProof(proof, publicSignals),
+        publicSignals: proofHandler.formatPubs(publicSignals),
         vk: proofHandler.formatVk(vkJson),
     };
 
     const isValid = await snarkjs[proofType].verify(vkJson, publicSignals, proof);
-
     if (isValid) {
         console.log(`Generated a valid ${proofType} proof`);
     } else {

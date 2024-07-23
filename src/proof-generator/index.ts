@@ -47,9 +47,11 @@ const submitProof = (api: ApiPromise, pallet: string, params: any[]): Submittabl
  * @param {string} proofType - The type of the proof.
  * @param {(valid: boolean) => any[]} getParams - Function to get the parameters for the transaction.
  * @param {{ [key: string]: number }} proofCounter - Object to keep track of the number of proofs sent.
+ * @param {{ [key: string]: number }} errorCounter - Object to keep track of the number of proofs that failed.
  * @param {Mutex} nonceMutex - Mutex to handle nonce updates.
  * @param {{ value: number }} nonce - The current nonce value.
  * @param {boolean} skipAttestation - Flag to skip waiting for attestation.
+ * @param {Promise<void>[]} inProgressTransactions - Array to store in-progress transactions.
  * @returns {Promise<void>} A promise that resolves when the proof is sent.
  */
 const sendProof = async (
@@ -58,9 +60,11 @@ const sendProof = async (
     proofType: string,
     getParams: (valid: boolean) => any[],
     proofCounter: { [key: string]: number },
+    errorCounter: { [key: string]: number },
     nonceMutex: Mutex,
     nonce: { value: number },
-    skipAttestation: boolean
+    skipAttestation: boolean,
+    inProgressTransactions: Promise<void>[]
 ): Promise<void> => {
     const params = getParams(true);
     const pallet = proofTypeToPallet[proofType];
@@ -78,17 +82,20 @@ const sendProof = async (
     const startTime = Date.now();
     const timerRefs = { interval: null as NodeJS.Timeout | null, timeout: null as NodeJS.Timeout | null };
 
-    try {
-        const result = await handleTransaction(api, transaction, account, proofType, startTime, false, timerRefs, currentNonce, skipAttestation);
-        proofCounter[proofType]++;
-        const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(2);
-        console.log(`Sent 1 proof, total ${proofCounter[proofType]} proofs, elapsed time: ${elapsedTime}s, result: ${result.result}, attestationId: ${result.attestationId}`);
-    } catch (error) {
-        console.error(`Error sending ${proofType} proof:`, error);
-        await nonceMutex.runExclusive(() => {
-            nonce.value -= 1;
+    proofCounter[proofType]++;
+    console.log(`Sent 1 proof of type ${proofType}, total sent: ${proofCounter[proofType]}`);
+
+    const transactionPromise = handleTransaction(api, transaction, account, proofType, startTime, false, timerRefs, currentNonce, skipAttestation)
+        .then(result => {
+            const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(2);
+            console.log(`Proof of type ${proofType} finalized, elapsed time: ${elapsedTime}s`);
+        })
+        .catch(error => {
+            console.error(`Error sending ${proofType} proof:`, error);
+            errorCounter[proofType]++;
         });
-    }
+
+    inProgressTransactions.push(transactionPromise);
 };
 
 /**
@@ -98,21 +105,30 @@ const sendProof = async (
  */
 const main = async (): Promise<void> => {
     validateEnvVariables(['WEBSOCKET', 'PRIVATE_KEY']);
+    console.log("Environment variables validated.");
 
     const provider = new WsProvider(process.env.WEBSOCKET as string);
     const api = await createApi(provider);
     await waitForNodeToSync(api);
+    console.log("API connected and node synced.");
 
     const keyring = new Keyring({ type: 'sr25519' });
     const account = keyring.addFromUri(process.env.PRIVATE_KEY as string);
+    console.log(`Using account: ${account.address}`);
 
     const initialNonce: BN = await api.rpc.system.accountNextIndex(account.address) as unknown as BN;
     const nonce = { value: initialNonce.toNumber() };
 
-    const proofTypes = (process.argv[4] || 'groth16').split(',');
+    const proofTypes = (process.argv[2] || 'groth16').split(',');
+    const interval = (parseInt(process.argv[3], 10) || 5) * 1000;
+    const duration = (parseInt(process.argv[4], 10) || 60) * 1000;
+    const skipAttestation = process.argv[5] === 'true';
+
     const proofCounter: { [key: string]: number } = {};
+    const errorCounter: { [key: string]: number } = {};
     proofTypes.forEach(proofType => {
         proofCounter[proofType] = 0;
+        errorCounter[proofType] = 0;
     });
 
     const unknownProofTypes: string[] = proofTypes.filter(pt => !proofTypeToPallet.hasOwnProperty(pt));
@@ -121,57 +137,53 @@ const main = async (): Promise<void> => {
         console.warn('Consider adding them to the proofTypeToPallet mapping in the configuration file.');
     }
 
-    const interval = (parseInt(process.argv[2], 10) || 5) * 1000;
-    const duration = (parseInt(process.argv[3], 10) || 60) * 1000;
-    const skipAttestation = process.argv[5] === 'true';
-
+    const inProgressTransactions: Promise<void>[] = [];
     try {
         const startTime = Date.now();
         const endTime = startTime + duration;
-
         const nonceMutex = new Mutex();
 
-        const intervalId = setInterval(async () => {
-            if (Date.now() > endTime) {
-                clearInterval(intervalId);
-                console.log(`Final counts of proofs sent (total time: ${((Date.now() - startTime) / 1000).toFixed(2)}s):`);
-                proofTypes.forEach(proofType => {
-                    console.log(`${proofType}: ${proofCounter[proofType]}`);
-                });
-                if (api) await api.disconnect();
-                if (provider) await provider.disconnect();
-                process.exit(0);
-            } else {
-                for (const proofType of proofTypes) {
-                    try {
-                        console.log(`Generating the ${proofType} proof`);
-                        const { proof, publicSignals, vk } = await generateAndVerifyProof(proofType);
-                        // TODO: Remove log
-                        console.log(`pubs: ` + publicSignals)
-                        const proofParams = [
-                            { 'Vk': vk },
-                            proof,
-                            publicSignals
-                        ];
+        const logSummary = () => {
+            console.log(`Proof counts (elapsed time: ${((Date.now() - startTime) / 1000).toFixed(2)}s):`);
+            proofTypes.forEach(proofType => {
+                console.log(`  ${proofType}: ${proofCounter[proofType]} sent, ${errorCounter[proofType]} failed`);
+            });
+        };
 
-                        console.log(`Sending the ${proofType} proof`);
-                        await sendProof(api, account, proofType, () => proofParams, proofCounter, nonceMutex, nonce, skipAttestation);
-                    } catch (error) {
-                        console.error(`Failed to send ${proofType} proof: ${error}`);
-                    }
-                }
-            }
+        const intervalId = setInterval(() => {
+            logSummary();
         }, interval);
 
-        await new Promise<void>((resolve) => {
-            setTimeout(() => {
-                clearInterval(intervalId);
-                resolve();
-            }, duration);
-        });
+        while (Date.now() < endTime) {
+            for (const proofType of proofTypes) {
+                try {
+                    const { proof, publicSignals, vk } = await generateAndVerifyProof(proofType);
+                    const proofParams = [
+                        { 'Vk': vk },
+                        proof,
+                        publicSignals
+                    ];
+                    await sendProof(api, account, proofType, () => proofParams, proofCounter, errorCounter, nonceMutex, nonce, skipAttestation, inProgressTransactions);
+                } catch (error) {
+                    console.error(`Failed to send ${proofType} proof: ${error}`);
+                    errorCounter[proofType]++;
+                }
+            }
+            await new Promise(resolve => setTimeout(resolve, interval));
+        }
+
+        clearInterval(intervalId);
+        await Promise.all(inProgressTransactions);
+
+        logSummary();
+        console.log("All in-progress transactions have completed.");
+        process.exit(0);
     } catch (error) {
         console.error(`Failed to load proof types: ${(error as Error).message}`);
         process.exit(1);
+    } finally {
+        if (api) await api.disconnect();
+        if (provider) await provider.disconnect();
     }
 };
 

@@ -63,13 +63,13 @@ The script accepts three parameters:
 - Skip Attestation (optional): If set to true, the script will skip waiting for attestation. Recommended for parallel execution. (default true)
 
 ### Example Command
-1. Via package.json (1 Proof every 5s for 60s)
+1. Via package.json (1 of each Proof every 5s for 60s)
 ```shell
-npm run generate:groth16 5 60
+npm run generate:proofs -- groth16,fflonk 5 60 true
 ```
 2. Run the file directly with ts-node
 ```shell
-npx ts-node src/proof-generator/index.ts 5 60 groth16,fflonk true
+npx ts-node src/proof-generator/index.ts groth16,fflonk 5 60 true
 ```
 
 ## Generating and sending a single unique proof

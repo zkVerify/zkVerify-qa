@@ -37,7 +37,7 @@ const submitProof = (api: ApiPromise, pallet: string, params: any[]): Submittabl
             Params: ${JSON.stringify(params, null, 2)}
             Error: ${error.message}
         `;
-        console.error(errorDetails);
+
         throw new Error(errorDetails);
     }
 };

@@ -1,5 +1,3 @@
-import { ProofData } from "../types";
-
 export interface FflonkVerificationKey {
     power: number;
     k1: string;
@@ -9,6 +7,8 @@ export interface FflonkVerificationKey {
     w4: string;
     w8: string;
     wr: string;
-    X_2: string[][];
-    C0: string[];
+    X_2: [string[], string[], string[]];
+    C0: [string, string, string];
+    x2: [string[], string[], string[]];
+    c0: [string, string, string];
 }

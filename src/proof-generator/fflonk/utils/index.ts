@@ -1,4 +1,5 @@
 import { FflonkVerificationKey } from "../types";
+const { BigNumber } = require('bignumber.js');
 
 /**
  * Formats the FFLONK verification key.
@@ -10,25 +11,33 @@ export const formatVk = (vkJson: any): FflonkVerificationKey => {
     const vkObject = typeof vkJson === 'string' ? JSON.parse(vkJson) : vkJson;
 
     return {
-        ...vkObject,
+        power: vkObject.power,
+        k1: vkObject.k1,
+        k2: vkObject.k2,
+        w: vkObject.w,
+        w3: vkObject.w3,
+        w4: vkObject.w4,
+        w8: vkObject.w8,
+        wr: vkObject.wr,
+        X_2: vkObject.X_2,
+        C0: vkObject.C0,
         get x2() { return this.X_2; },
-        get c0() { return this.C0; },
+        get c0() { return this.C0; }
     };
+};
+
+export const to32ByteHex = (numStr: string): string => {
+    const hexStr = BigInt(numStr).toString(16);
+    return hexStr.padStart(64, '0');
 };
 
 /**
  * Formats the FFLONK proof data.
  *
  * @param {any} proof - The raw proof data.
- * @param {string[]} publicSignals - The public signals.
  * @returns {string} - The formatted proof data.
  */
 export const formatProof = (proof: any): string => {
-    const to32ByteHex = (numStr: string): string => {
-        const hexStr = BigInt(numStr).toString(16);
-        return hexStr.padStart(64, '0'); // 64 hex chars = 32 bytes
-    };
-
     const formatG1 = (g1: string[]): string[] => g1.slice(0, 2).map(to32ByteHex);
 
     const formattedPolynomials = [
@@ -58,3 +67,14 @@ export const formatProof = (proof: any): string => {
 
     return '0x' + proofHex;
 };
+
+/**
+ * Formats the first public signal by converting it to a hexadecimal string.
+ *
+ * @param {string[]} pubs - The array of public signals to format. Assumes the array contains at least one element.
+ * @returns {string} - The formatted hexadecimal string of the first public signal, padded to 64 characters.
+ */
+export const formatPubs = (pubs: string[]): string => {
+    return "0x" + BigNumber(pubs[0]).toString(16).padStart(64, '0');
+}
+

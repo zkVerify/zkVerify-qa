@@ -1,6 +1,6 @@
 import { ProofHandler } from "../../types";
 import { FflonkVerificationKey } from "../types";
-import { formatProof as formatFflonkProof, formatVk as formatFflonkVk } from "../utils";
+import { formatProof as formatFflonkProof, formatVk as formatFflonkVk, formatPubs as formatFflonkPubs } from "../utils";
 
 class FflonkHandler implements ProofHandler {
     formatProof(proof: any, publicSignals: string[]): string {
@@ -9,6 +9,10 @@ class FflonkHandler implements ProofHandler {
 
     formatVk(vkJson: any): FflonkVerificationKey {
         return formatFflonkVk(vkJson);
+    }
+
+    formatPubs(pubs: string[]): string {
+        return formatFflonkPubs(pubs);
     }
 }
 

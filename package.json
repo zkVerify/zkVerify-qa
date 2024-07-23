@@ -8,7 +8,7 @@
     "test:e2e": "cp .env.local.e2e .env && jest --config=jest.config.e2e.js --forceExit --verbose",
     "test:rpc:local": "cp .env.local.rpc .env && jest --config=jest.config.local.rpc.js --verbose",
     "test:rpc:testnet": "cp .env.testnet.rpc .env && jest --config=jest.config.testnet.rpc.js --forceExit --verbose",
-    "generate:groth16": "cp .env.generator .env && npx ts-node src/proof-generator/index.ts $INTERVAL $DURATION groth16"
+    "generate:proofs": "cp .env.generator .env && npx ts-node src/proof-generator/index.ts"
   },
   "dependencies": {
     "@polkadot/api": "^11.0.3",
