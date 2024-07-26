@@ -75,14 +75,14 @@ const sendProof = async (
  * Main function to execute the proof submission.
  */
 const main = async (): Promise<void> => {
-    validateEnvVariables(['WEBSOCKET', 'PRIVATE_KEY']);
+    validateEnvVariables(['WEBSOCKET', 'SEED_PHRASE']);
 
     const provider = new WsProvider(process.env.WEBSOCKET as string);
     const api = await createApi(provider);
     await waitForNodeToSync(api);
 
     const keyring = new Keyring({ type: 'sr25519' });
-    const account = keyring.addFromUri(process.env.PRIVATE_KEY as string);
+    const account = keyring.addFromUri(process.env.SEED_PHRASE as string);
 
     // Retrieve and convert the nonce to a number
     const initialNonce: BN = await api.rpc.system.accountNextIndex(account.address) as unknown as BN;

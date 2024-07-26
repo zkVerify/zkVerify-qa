@@ -93,5 +93,5 @@ docker run -e INTERVAL=10 -e DURATION=120 proof-generator
 - Ensure your .env file is set up with the required environment variables:
 
 *WEBSOCKET*: The WebSocket endpoint of your Substrate node.
-*PRIVATE_KEY*: The private key of the account used for submitting transactions.
+*SEED_PHRASE*: The seed phrase of the account used for submitting transactions.
 

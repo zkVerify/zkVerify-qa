@@ -24,11 +24,11 @@ docker-compose build
 ```
 Local Run:
 ```sh
-docker-compose run -e TEST_ENV=local -e RPC_URL=http://local-rpc-url -e WEBSOCKET=ws://local-websocket -e PRIVATE_KEY=<local-private-key rpc-tests>
+docker-compose run -e TEST_ENV=local -e RPC_URL=http://local-rpc-url -e WEBSOCKET=ws://local-websocket -e SEED_PHRASE=<local-private-key rpc-tests>
 ```
 Testnet:
 ```sh
-docker-compose run rpc-tests -e PRIVATE_KEY=<testnet-private-key rpc-tests>
+docker-compose run rpc-tests -e SEED_PHRASE=<testnet-private-key rpc-tests>
 ```
 
 ### Running test for a specific namespace

@@ -10,7 +10,7 @@ const main = async (): Promise<void> => {
     if (!proofType) {
         throw new Error('Proof type argument is required. Usage: npm run send-proof <proof-type>');
     }
-    validateEnvVariables(['WEBSOCKET', 'PRIVATE_KEY']);
+    validateEnvVariables(['WEBSOCKET', 'SEED_PHRASE']);
     validateProofTypes([proofType]);
 
     const { api, provider, account, nonce } = await initializeApi();

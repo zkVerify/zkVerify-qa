@@ -125,8 +125,8 @@ export const validateEnvVariables = (variables: string[]): void => {
         if (!process.env[envVar]) {
             throw new Error(`Required environment variable ${envVar} is not set.`);
         }
-        if (envVar === 'PRIVATE_KEY' && process.env[envVar] === 'INSERT_SEED_PHRASE') {
-            throw new Error('The PRIVATE_KEY environment variable has not been set.');
+        if (envVar === 'SEED_PHRASE' && process.env[envVar] === 'INSERT_SEED_PHRASE') {
+            throw new Error('The SEED_PHRASE environment variable has not been set.');
         }
     });
 };
@@ -173,13 +173,13 @@ export const submitProof = (api: ApiPromise, pallet: string, params: any[]): Sub
  * @returns {Promise<{ api: ApiPromise, provider: WsProvider, account: KeyringPair, nonce: { value: number } }>} The initialized API, provider, account, and nonce.
  */
 export const initializeApi = async (): Promise<{ api: ApiPromise, provider: WsProvider, account: KeyringPair, nonce: { value: number } }> => {
-    validateEnvVariables(['WEBSOCKET', 'PRIVATE_KEY']);
+    validateEnvVariables(['WEBSOCKET', 'SEED_PHRASE']);
     const provider = new WsProvider(process.env.WEBSOCKET as string);
     const api = await createApi(provider);
     await waitForNodeToSync(api);
 
     const keyring = new Keyring({ type: 'sr25519' });
-    const account = keyring.addFromUri(process.env.PRIVATE_KEY as string);
+    const account = keyring.addFromUri(process.env.SEED_PHRASE as string);
     const initialNonce: BN = await api.rpc.system.accountNextIndex(account.address) as unknown as BN;
     const nonce = { value: initialNonce.toNumber() };
 

@@ -72,7 +72,7 @@ const sendProof = async (
  * @returns {Promise<void>} A promise that resolves when the main function completes.
  */
 const main = async (): Promise<void> => {
-    validateEnvVariables(['WEBSOCKET', 'PRIVATE_KEY']);
+    validateEnvVariables(['WEBSOCKET', 'SEED_PHRASE']);
     console.log("Environment variables validated.");
 
     const { api, provider, account, nonce } = await initializeApi();
