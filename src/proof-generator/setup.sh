@@ -1,6 +1,6 @@
 #!/bin/bash
 
-ACCEPTED_PROOF_TYPES=("groth16" "fflonk" "boojum")
+ACCEPTED_PROOF_TYPES=("groth16" "fflonk" "boojum" "risc0")
 
 contains() {
   local element
@@ -58,5 +58,8 @@ case "$PROOF_TYPE" in
     ;;
   boojum)
     ./setup-scripts/setup_boojum.sh
+    ;;
+  risc0)
+    ./setup-scripts/setup_risc0.sh
     ;;
 esac
