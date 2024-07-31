@@ -100,6 +100,12 @@ install_macOS_build_tools() {
       echo 'export PATH="/usr/local/opt/openssl@1.1/bin:$PATH"' >> "$SHELL_ENV_FILE"
     fi
 
+    # Update rust target
+    if ! rustup target list --installed | grep -q "x86_64-apple-darwin"; then
+      echo "x86_64-apple-darwin target not found, installing..."
+      rustup target add x86_64-apple-darwin
+    fi
+
     # Update the environment variables for the current session
     export CARGO_BUILD_TARGET="x86_64-apple-darwin"
     export LIBRARY_PATH="$LIBRARY_PATH:/usr/local/opt/openssl@1.1/lib:/usr/local/opt/xz/lib"
