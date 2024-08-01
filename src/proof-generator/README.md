@@ -73,6 +73,11 @@ npx ts-node src/proof-generator/index.ts groth16,fflonk 5 60 true
 ```
 
 ## Generating and sending a single unique proof
+1. Via package.json
+```shell
+npm run generate:single:proof -- fflonk false
+```
+2. Run the file directly with ts-node
 ```shell
 npx ts-node src/send-proof/index.ts <proofType> <skipAttestation Boolean>
 ```
