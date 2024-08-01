@@ -82,7 +82,7 @@ install_macOS_build_tools() {
       echo "xz is already installed."
     fi
 
-    echo "Adding OpenSSL and xz environment variables to $SHELL_ENV_FILE..."
+    echo "Adding OpenSSL, pkgconf and xz environment variables to $SHELL_ENV_FILE (if they don't exist)..."
 
     if ! grep -q 'export LIBRARY_PATH="$LIBRARY_PATH:/usr/local/opt/openssl@1.1/lib:/usr/local/opt/xz/lib"' "$SHELL_ENV_FILE"; then
       echo 'export LIBRARY_PATH="$LIBRARY_PATH:/usr/local/opt/openssl@1.1/lib:/usr/local/opt/xz/lib"' >> "$SHELL_ENV_FILE"

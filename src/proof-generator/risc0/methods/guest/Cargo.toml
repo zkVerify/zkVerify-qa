@@ -10,4 +10,4 @@ path = "src/bin/multiply.rs"
 [workspace]
 
 [dependencies]
-risc0-zkvm = { version = "1.0.4", default-features = false, features = ['std'] }
+risc0-zkvm = { version = "1.0.4", default-features = false }

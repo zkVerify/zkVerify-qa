@@ -3,31 +3,26 @@ use risc0_zkvm::{
     default_prover,
     serde::{from_slice, to_vec},
     ExecutorEnv,
-  };
+};
 
 fn main() {
-
     let a: u64 = 17;
     let b: u64 = 23;
 
+    println!("Sending values to guest: a = {}, b = {}", a, b);
+
     let env = ExecutorEnv::builder()
-        .add_input(&to_vec(&a).unwrap())
-        .add_input(&to_vec(&b).unwrap())
+        .write(&a).unwrap()
+        .write(&b).unwrap()
         .build()
         .unwrap();
 
     let prover = default_prover();
 
-    let receipt = prover.prove_elf(env, MULTIPLY_ELF).unwrap();
+    println!("Proving...");
+    let receipt = prover.prove(env, MULTIPLY_ELF).unwrap().receipt;
+    println!("Receipt received...");
+    let output: u64 = receipt.journal.decode().unwrap();
 
-    let c: u64 = from_slice(&receipt.journal).unwrap();
-
-    println!("Hello, world! I know the factors of {}, and I can prove it!", c);
-
-    let serialized = bincode::serialize(&receipt).unwrap();
-
-    let _saved_file = match std::fs::write("./receipt.bin", serialized){
-         Ok(()) => println!("Receipt saved and serialized as receipt.bin"),
-         Err(_) => println!("Something went wrong !!"),
-    };
+    println!("Hello, world! I generated a proof of guest execution! {} is a public output from journal ", output);
 }
