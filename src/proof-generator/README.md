@@ -55,31 +55,53 @@ All files are already committed and pregenerated but if you wish to do it again 
 
 ## Running the Proof Generation and Submission Script
 
-### Parameters
-The script accepts three parameters:
+### Configuration
 
-- Interval (in seconds): The time interval between sending proofs.
-- Duration (in seconds): The total duration for which proofs will be sent.
-- Skip Attestation (optional): If set to true, the script will skip waiting for attestation. Recommended for parallel execution. (default true)
+The script uses a `config.json` file to configure proof generation and submission parameters. This approach allows you to specify settings for different types of proofs in a structured format.
+
+### Sample `config.json`
+
+```json
+{
+  "proofs": [
+    {
+      "type": "groth16",
+      "rate": 1,
+      "interval": 5,
+      "duration": 60,
+      "skipAttestation": true
+    },
+    {
+      "type": "fflonk",
+      "rate": 1,
+      "interval": 10,
+      "duration": 120,
+      "skipAttestation": true
+    }
+  ]
+}
+```
 
 ### Example Command
-1. Via package.json (1 of each Proof every 5s for 60s)
-```shell
-npm run generate:proofs -- groth16,fflonk 5 60 true
-```
-2. Run the file directly with ts-node
-```shell
-npx ts-node src/proof-generator/index.ts groth16,fflonk 5 60 true
-```
 
-## Generating and sending a single unique proof
 1. Via package.json
 ```shell
-npm run generate:single:proof -- fflonk false
+npm run generate:proofs
 ```
 2. Run the file directly with ts-node
 ```shell
-npx ts-node src/send-proof/index.ts <proofType> <skipAttestation Boolean>
+npx ts-node src/proof-generator/index.ts
+```
+
+### Generating and sending a single unique proof
+
+1. Via package.json (requires `proofType` and `skipWaitingForAttestationEventBoolean` args)
+```shell
+npm run generate:single:proof -- fflonk true
+```
+2. Run the file directly with ts-node
+```shell
+npx ts-node src/send-proof/index.ts <proofType> <skipWaitingForAttestationEventBoolean>
 ```
 
 ## Docker

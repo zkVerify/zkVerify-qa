@@ -1,11 +1,16 @@
-import {initializeApi, submitProof, validateEnvVariables, validateProofTypes} from '../utils/helpers';
-import { generateAndVerifyProof } from './common/generate-proof';
+import { initializeApi, submitProof, validateEnvVariables, validateProofTypes } from '../utils/helpers';
+import { generateAndNativelyVerifyProof } from './common/generate-proof';
 import { handleTransaction } from '../utils/transactions';
+import { ProofConfig } from './types';
 import { Mutex } from 'async-mutex';
 import { proofTypeToPallet } from '../config';
 import { ApiPromise } from "@polkadot/api";
 import { KeyringPair } from "@polkadot/keyring/types";
 import 'dotenv/config';
+import * as fs from 'fs';
+import * as readline from 'readline';
+import path from "path";
+const clc = require('cli-color');
 
 /**
  * Send a proof to the blockchain.
@@ -14,12 +19,12 @@ import 'dotenv/config';
  * @param {KeyringPair} account - The account to use for sending the transaction.
  * @param {string} proofType - The type of the proof.
  * @param {(valid: boolean) => any[]} getParams - Function to get the parameters for the transaction.
- * @param {{ [key: string]: number }} proofCounter - Object to keep track of the number of proofs sent.
- * @param {{ [key: string]: number }} errorCounter - Object to keep track of the number of proofs that failed.
  * @param {Mutex} nonceMutex - Mutex to handle nonce updates.
  * @param {{ value: number }} nonce - The current nonce value.
  * @param {boolean} skipAttestation - Flag to skip waiting for attestation.
- * @param {Promise<void>[]} inProgressTransactions - Array to store in-progress transactions.
+ * @param {Mutex} countMutex - Mutex to handle proof count updates.
+ * @param {number} proofCount - Reference to the proof count for logging
+ * @param {number} completedCount - Reference to the completed proof count for logging
  * @returns {Promise<void>} A promise that resolves when the proof is sent.
  */
 const sendProof = async (
@@ -27,12 +32,12 @@ const sendProof = async (
     account: KeyringPair,
     proofType: string,
     getParams: (valid: boolean) => any[],
-    proofCounter: { [key: string]: number },
-    errorCounter: { [key: string]: number },
     nonceMutex: Mutex,
     nonce: { value: number },
     skipAttestation: boolean,
-    inProgressTransactions: Promise<void>[]
+    countMutex: Mutex,
+    proofCount: { [key: string]: number },
+    completedCount: { [key: string]: number }
 ): Promise<void> => {
     const params = getParams(true);
     const pallet = proofTypeToPallet[proofType];
@@ -50,20 +55,42 @@ const sendProof = async (
     const startTime = Date.now();
     const timerRefs = { interval: null as NodeJS.Timeout | null, timeout: null as NodeJS.Timeout | null };
 
-    proofCounter[proofType]++;
-    console.log(`Sent 1 proof of type ${proofType}, total sent: ${proofCounter[proofType]}`);
+    await countMutex.runExclusive(() => {
+        proofCount[proofType] += 1;
+        console.log(clc.green(`Sending 1 proof of type ${proofType} (Total sent: ${proofCount[proofType]})`));
+    });
 
-    const transactionPromise = handleTransaction(api, transaction, account, proofType, startTime, false, timerRefs, currentNonce, skipAttestation)
-        .then(result => {
-            const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(2);
-            console.log(`Proof of type ${proofType} finalized, elapsed time: ${elapsedTime}s`);
-        })
-        .catch(error => {
-            console.error(`Error sending ${proofType} proof:`, error);
-            errorCounter[proofType]++;
+    try {
+        const result = await handleTransaction(api, transaction, account, proofType, startTime, false, timerRefs, currentNonce, skipAttestation);
+        const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(2);
+
+        await countMutex.runExclusive(() => {
+            completedCount[proofType] += 1;
+            console.log(clc.blue(`Proof of type ${proofType} finalized, elapsed time: ${elapsedTime}s, result: ${result.result}, attestationId: ${result.attestationId}`));
         });
+    } catch (error) {
+        console.error(clc.red(`Error sending ${proofType} proof:`, error));
+    }
+};
 
-    inProgressTransactions.push(transactionPromise);
+/**
+ * Prompts the user for confirmation.
+ *
+ * @param {string} message - The message to display for confirmation.
+ * @returns {Promise<boolean>} A promise that resolves to true if confirmed, otherwise false.
+ */
+const promptConfirmation = (message: string): Promise<boolean> => {
+    const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout,
+    });
+
+    return new Promise((resolve) => {
+        rl.question(`${message} (y/n): `, (answer) => {
+            rl.close();
+            resolve(answer.toLowerCase() === 'y');
+        });
+    });
 };
 
 /**
@@ -75,67 +102,84 @@ const main = async (): Promise<void> => {
     validateEnvVariables(['WEBSOCKET', 'SEED_PHRASE']);
     console.log("Environment variables validated.");
 
+    const configPath = path.join(__dirname, 'config.json');
+    const config: { proofs: ProofConfig[] } = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    const proofsConfig = config.proofs;
+
+    validateProofTypes(proofsConfig.map((proof: ProofConfig) => proof.type));
+
+    console.log("\n=== Proof Generation Configuration ===");
+    proofsConfig.forEach((proof: ProofConfig, index: number) => {
+        console.log(`\n--- Proof ${index + 1} ---`);
+        console.log(`  Proof Type        : ${proof.type}`);
+        console.log(`  Rate              : ${proof.rate} proofs per interval`);
+        console.log(`  Interval          : ${proof.interval} seconds`);
+        console.log(`  Duration          : ${proof.duration} seconds`);
+        console.log(`  Skip Attestation  : ${proof.skipAttestation}`);
+        console.log(`--------------------------`);
+    });
+
+    const confirmed = await promptConfirmation("Do you want to start the test with the above settings?");
+    if (!confirmed) {
+        console.log("Test aborted.");
+        process.exit(0);
+    }
+
     const { api, provider, account, nonce } = await initializeApi();
     console.log("API connected and node synced.");
 
-    const proofTypes = (process.argv[2] || 'groth16').split(',');
-    validateProofTypes(proofTypes);
-
-    const interval = (parseInt(process.argv[3], 10) || 5) * 1000;
-    const duration = (parseInt(process.argv[4], 10) || 60) * 1000;
-    const skipAttestation = process.argv[5] === 'true';
-
-    const proofCounter: { [key: string]: number } = {};
-    const errorCounter: { [key: string]: number } = {};
-    proofTypes.forEach(proofType => {
-        proofCounter[proofType] = 0;
-        errorCounter[proofType] = 0;
-    });
-
-    const inProgressTransactions: Promise<void>[] = [];
     try {
-        const startTime = Date.now();
-        const endTime = startTime + duration;
         const nonceMutex = new Mutex();
+        const countMutex = new Mutex();
 
-        const logSummary = () => {
-            console.log(`Proof counts (elapsed time: ${((Date.now() - startTime) / 1000).toFixed(2)}s):`);
-            proofTypes.forEach(proofType => {
-                console.log(`  ${proofType}: ${proofCounter[proofType]} sent, ${errorCounter[proofType]} failed`);
-            });
-        };
+        const proofCount: { [key: string]: number } = {};
+        const completedCount: { [key: string]: number } = {};
 
-        const intervalId = setInterval(() => {
-            logSummary();
-        }, interval);
+        const proofPromises = proofsConfig.map(proofConfig => {
+            const { type, rate, interval, duration, skipAttestation } = proofConfig;
+            proofCount[type] = 0;
+            completedCount[type] = 0;
+            const endTime = Date.now() + duration * 1000;
 
-        while (Date.now() < endTime) {
-            for (const proofType of proofTypes) {
-                try {
-                    const { proof, publicSignals, vk } = await generateAndVerifyProof(proofType);
-                    const proofParams = [
-                        { 'Vk': vk },
-                        proof,
-                        publicSignals
-                    ];
-                    await sendProof(api, account, proofType, () => proofParams, proofCounter, errorCounter, nonceMutex, nonce, skipAttestation, inProgressTransactions);
-                } catch (error) {
-                    console.error(`Failed to send ${proofType} proof: ${error}`);
-                    errorCounter[proofType]++;
+            const sendProofs = async () => {
+                for (let i = 0; i < rate; i++) {
+                    try {
+                        const { proof, publicSignals, vk } = await generateAndNativelyVerifyProof(type);
+                        const proofParams = [
+                            { 'Vk': vk },
+                            proof,
+                            publicSignals
+                        ];
+                        await sendProof(api, account, type, () => proofParams, nonceMutex, nonce, skipAttestation, countMutex, proofCount, completedCount);
+                    } catch (error) {
+                        console.error(clc.red(`Failed to send ${type} proof: ${error}`));
+                    }
                 }
-            }
-            await new Promise(resolve => setTimeout(resolve, interval));
+            };
+
+            return new Promise<void>(resolve => {
+                const intervalId = setInterval(async () => {
+                    if (Date.now() >= endTime) {
+                        clearInterval(intervalId);
+                        resolve();
+                    } else {
+                        await sendProofs();
+                    }
+                }, interval * 1000);
+            });
+        });
+
+        await Promise.all(proofPromises);
+
+        console.log("\n=== Proof Sending Summary ===");
+        for (const type of Object.keys(proofCount)) {
+            console.log(clc.cyan(`Total ${type} proofs sent: ${proofCount[type]}`));
+            console.log(clc.cyan(`Total ${type} proofs completed: ${completedCount[type]}`));
         }
 
-        clearInterval(intervalId);
-        await Promise.all(inProgressTransactions);
-
-        logSummary();
         console.log("All in-progress transactions have completed.");
-        process.exit(0);
     } catch (error) {
-        console.error(`Failed to load proof types: ${(error as Error).message}`);
-        process.exit(1);
+        console.error(clc.red(`Failed to process proofs: ${(error as Error).message}`));
     } finally {
         if (api) await api.disconnect();
         if (provider) await provider.disconnect();

@@ -8,9 +8,10 @@ import { getProofHandler } from "../proof-utils";
  * @returns {Promise<ProofData<any>>} A promise that resolves to the generated proof data.
  * @throws {Error} If any required file is not found.
  */
-export async function generateAndVerifyProof(proofType: string): Promise<ProofData<any>> {
+export async function generateAndNativelyVerifyProof(proofType: string): Promise<ProofData<any>> {
     const handler = await getProofHandler(proofType);
     const inputs = handler.generateUniqueInput();
+
     const { proof, publicSignals, vk } = await handler.generateProof(inputs);
 
     return {

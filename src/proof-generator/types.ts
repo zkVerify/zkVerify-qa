@@ -25,3 +25,11 @@ export interface ProofHandler {
     verifyProof(vk: any, proof: any, publicSignals: any): Promise<boolean>;
     generateUniqueInput(): any;
 }
+
+export interface ProofConfig {
+    type: string;
+    rate: number;
+    interval: number;
+    duration: number;
+    skipAttestation: boolean;
+}

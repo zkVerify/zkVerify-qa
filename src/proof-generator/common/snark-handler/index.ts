@@ -1,8 +1,9 @@
 import * as fs from "fs";
 import * as path from "path";
-import * as nodeCrypto from "crypto";
+import BN from "bn.js";
 import { ProofData, ProofHandler } from "../../types";
 import { generateWitness, writeInputJsonFile } from "../proof-utils";
+import { randomBytes } from "crypto";
 
 abstract class SnarkHandler implements ProofHandler {
     abstract formatProof(proof: any, publicSignals?: string[]): any;
@@ -23,14 +24,15 @@ abstract class SnarkHandler implements ProofHandler {
     abstract getVerifyMethod(): (vk: any, publicSignals: any, proof: any) => Promise<boolean>;
 
     generateUniqueInput(): { a: string; b: string } {
-        const randomValue = nodeCrypto.randomBytes(32).toString('hex');
-        const timestamp = Date.now().toString();
-        const hash = nodeCrypto.createHash('sha256').update(randomValue + timestamp).digest('hex');
+        const generateRandom128BitNumber = (): BN => {
+            const randomBytesArray = randomBytes(16);
+            return new BN(randomBytesArray, 16);
+        };
 
-        const a = "0x" + hash.slice(0, 32);
-        const b = "0x" + hash.slice(32, 64);
+        const a = generateRandom128BitNumber();
+        const b = generateRandom128BitNumber();
 
-        return { a, b };
+        return { a: "0x" + a.toString(16), b: "0x" + b.toString(16) };
     }
 
     protected checkFilesExistence(circuitWasm: string, provingKey: string, verificationKeyPath: string): void {
