@@ -4,19 +4,24 @@ export interface ProofInner {
     c: string;
 }
 
+export type ProofType<T> = ProofInner | T | string;
+
 export interface Proof<T> {
-    curve: string;
-    proof: ProofInner | T;
+    curve?: string;
+    proof: ProofType<T>;
 }
 
 export interface ProofData<T> {
-    proof: Proof<T>;
-    publicSignals: string;
-    vk: any;
+    proof: T;
+    publicSignals: string | string[];
+    vk?: any;
 }
 
 export interface ProofHandler {
     formatProof(proof: any, publicSignals?: string[]): any;
     formatVk(vkJson: any): any;
-    formatPubs(pubs: string[])
+    formatPubs(pubs: string[]): any;
+    generateProof(inputs: any): Promise<ProofData<any>>;
+    verifyProof(vk: any, proof: any, publicSignals: any): Promise<boolean>;
+    generateUniqueInput(): any;
 }
