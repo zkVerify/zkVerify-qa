@@ -8,12 +8,14 @@
     "test:e2e": "cp .env.local.e2e .env && jest --config=jest.config.e2e.js --forceExit --verbose",
     "test:rpc:local": "cp .env.local.rpc .env && jest --config=jest.config.local.rpc.js --verbose",
     "test:rpc:testnet": "cp .env.testnet.rpc .env && jest --config=jest.config.testnet.rpc.js --forceExit --verbose",
-    "generate:proofs": "cp .env.generator .env && npx ts-node src/send-proof/index.ts"
+    "generate:single:proof": "cp .env.generator .env && npx ts-node src/send-proof/index.ts",
+    "generate:proofs": "cp .env.generator .env && npx ts-node src/proof-generator/index.ts"
   },
   "dependencies": {
     "@polkadot/api": "^11.0.3",
     "async-mutex": "^0.5.0",
     "axios": "1.4.0",
+    "cli-color": "^2.0.4",
     "debug": "^4.3.4",
     "dotenv": "^16.4.5",
     "snarkjs": "^0.7.4",

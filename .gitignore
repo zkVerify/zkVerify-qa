@@ -27,3 +27,4 @@ src/proof-generator/risc0/.DS_Store
 src/proof-generator/risc0/Cargo.lock
 src/proof-generator/risc0/methods/guest/Cargo.lock
 src/proof-generator/risc0/target
+src/proof-generator/risc0/data
