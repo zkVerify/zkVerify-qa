@@ -6,7 +6,7 @@ import { proofs } from '../../../../utils/proofs';
 import { createApi, waitForNodeToSync } from '../../../../utils/helpers';
 import { handleTransaction, clearResources } from '../../../../utils/transactions';
 
-const requiredEnvVariables: string[] = ['WEBSOCKET', 'PRIVATE_KEY'];
+const requiredEnvVariables: string[] = ['WEBSOCKET', 'SEED_PHRASE'];
 
 requiredEnvVariables.forEach(envVar => {
     if (!process.env[envVar]) {
@@ -51,7 +51,7 @@ describe('Proof Submission and Event Handling', () => {
         async (proofType, { pallet, getParams }) => {
             console.log(`Submitting valid ${proofType} proof...`);
             const keyring = new Keyring({ type: 'sr25519' });
-            const account = keyring.addFromUri(process.env.PRIVATE_KEY as string);
+            const account = keyring.addFromUri(process.env.SEED_PHRASE as string);
 
             const params = getParams(true);
             const transaction = submitProof(api, pallet, params);
@@ -67,7 +67,7 @@ describe('Proof Submission and Event Handling', () => {
         async (proofType, { pallet, getParams }) => {
             console.log(`Submitting invalid ${proofType} proof...`);
             const keyring = new Keyring({ type: 'sr25519' });
-            const account = keyring.addFromUri(process.env.PRIVATE_KEY as string);
+            const account = keyring.addFromUri(process.env.SEED_PHRASE as string);
 
             const params = getParams(false);
             const transaction = submitProof(api, pallet, params);

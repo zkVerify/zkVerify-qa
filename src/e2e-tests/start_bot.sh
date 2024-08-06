@@ -32,8 +32,8 @@ echo "Waiting for contract data to be ready..."
 while true; do
     if [ -f /data/contract_data.txt ]; then
         CONTRACT_ADDRESS=$(sed -n '1p' /data/contract_data.txt | cut -d ' ' -f 3)
-        PRIVATE_KEY=$(sed -n '2p' /data/contract_data.txt | cut -d ' ' -f 3)
-        if [ ! -z "$CONTRACT_ADDRESS" ] && [ ! -z "$PRIVATE_KEY" ]; then
+        SEED_PHRASE=$(sed -n '2p' /data/contract_data.txt | cut -d ' ' -f 3)
+        if [ ! -z "$CONTRACT_ADDRESS" ] && [ ! -z "$SEED_PHRASE" ]; then
             echo "Contract data is ready."
             break
         fi
@@ -48,11 +48,11 @@ while true; do
 done
 
 echo "Contract Address: $CONTRACT_ADDRESS"
-echo "Private Key: $PRIVATE_KEY"
+echo "Private Key: $SEED_PHRASE"
 
 # Export environment variables required by the bot
 export NH_ATTEST_BOT_NH_CONTRACT_ADDRESS=$CONTRACT_ADDRESS
-export NH_ATTEST_BOT_OPERATOR_SECRET_KEY=$PRIVATE_KEY
+export NH_ATTEST_BOT_OPERATOR_SECRET_KEY=$SEED_PHRASE
 
 # Start the bot
 node src/main.js

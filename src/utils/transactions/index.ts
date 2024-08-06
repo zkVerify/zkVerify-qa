@@ -12,6 +12,24 @@ export const clearResources = (timerRefs: { interval: NodeJS.Timeout | null, tim
     if (timerRefs.timeout) clearTimeout(timerRefs.timeout);
 };
 
+
+/**
+ * Decodes a dispatch error using the API metadata.
+ * @param api - The ApiPromise instance.
+ * @param dispatchError - The dispatch error to decode.
+ * @returns The decoded error message.
+ */
+const decodeDispatchError = (api: ApiPromise, dispatchError: any): string => {
+    if (dispatchError.isModule) {
+        const decoded = api.registry.findMetaError(dispatchError.asModule);
+        const { docs, name, section } = decoded;
+        return `${section}.${name}: ${docs.join(' ')}`;
+    } else {
+        return dispatchError.toString();
+    }
+};
+
+
 /**
  * Handles events when a transaction is included in a block.
  * @param events - The events emitted.
@@ -47,6 +65,7 @@ const handleInBlock = (
  * @param dispatchError - Any dispatch error that occurred.
  * @param api - The ApiPromise instance.
  * @param startTime - The start time of the transaction.
+ * @param skipAttestation - Boolean indicating if attestation wait should be skipped.
  * @returns A promise that resolves to a string indicating the result.
  */
 const handleFinalized = async (
@@ -55,29 +74,35 @@ const handleFinalized = async (
     attestationId: string | null,
     dispatchError: any,
     api: ApiPromise,
-    startTime: number
+    startTime: number,
+    skipAttestation: boolean
 ): Promise<string> => {
     const validityPrefix = expectsError ? "Invalid" : "Valid";
     console.log(`${validityPrefix} ${proofType} Transaction finalized (elapsed time: ${(Date.now() - startTime) / 1000} seconds)`);
 
     if (dispatchError) {
+        const decodedError = decodeDispatchError(api, dispatchError);
         if (expectsError) {
-            console.log(`Invalid ${proofType} Transaction failed as expected with error.`);
+            console.log(`Invalid ${proofType} Transaction failed as expected with error: ${decodedError}`);
             return 'failed as expected';
         } else {
-            throw new Error(`Unexpected error: ${dispatchError.toString()}`);
+            throw new Error(`Unexpected error: ${decodedError}`);
         }
     } else {
         if (expectsError) {
             throw new Error('Transaction was expected to fail but succeeded.');
         } else {
             if (attestationId) {
-                const eventData = await waitForNewAttestation(api, 360000, attestationId, startTime);
-                const [id, proofsAttestation] = eventData;
-                if (Number.isInteger(id) && /^0x[a-fA-F0-9]{64}$/.test(proofsAttestation)) {
-                    return 'succeeded';
+                if (!skipAttestation) {
+                    const eventData = await waitForNewAttestation(api, 360000, attestationId, startTime);
+                    const [id, proofsAttestation] = eventData;
+                    if (Number.isInteger(id) && /^0x[a-fA-F0-9]{64}$/.test(proofsAttestation)) {
+                        return 'succeeded';
+                    } else {
+                        throw new Error('Invalid attestation data.');
+                    }
                 } else {
-                    throw new Error('Invalid attestation data.');
+                    return 'succeeded';
                 }
             } else {
                 throw new Error('No attestation ID found.');
@@ -95,6 +120,8 @@ const handleFinalized = async (
  * @param startTime - The start time of the transaction.
  * @param expectsError - Boolean indicating if an error is expected.
  * @param timerRefs - An object containing interval and timeout references.
+ * @param nonce - Optional nonce value for the transaction.
+ * @param skipAttestation - Boolean indicating if attestation wait should be skipped.
  * @returns A promise that resolves to an object containing the result and attestation ID.
  */
 export const handleTransaction = async (
@@ -104,7 +131,9 @@ export const handleTransaction = async (
     proofType: string,
     startTime: number,
     expectsError = false,
-    timerRefs: { interval: NodeJS.Timeout | null, timeout: NodeJS.Timeout | null }
+    timerRefs: { interval: NodeJS.Timeout | null, timeout: NodeJS.Timeout | null },
+    nonce?: number,
+    skipAttestation = false
 ): Promise<{ result: string, attestationId: string | null }> => {
     const validityPrefix = expectsError ? "Invalid" : "Valid";
     let attestation_id: string | null = null;
@@ -115,26 +144,30 @@ export const handleTransaction = async (
 
     return new Promise<{ result: string, attestationId: string | null }>((resolve, reject) => {
         let isFinalized = false;
+
         // Set timeout for transaction finalization
         timerRefs.timeout = setTimeout(() => {
             clearResources(timerRefs);
             reject(new Error(`Test timed out waiting for ${validityPrefix} ${proofType} proof transaction finalization`));
         }, 60000) as NodeJS.Timeout;
+
         // Sign and send the transaction
-        submitProof.signAndSend(account, async ({ events, status, dispatchError }) => {
+        submitProof.signAndSend(account, { nonce }, async ({ events, status, dispatchError }) => {
             try {
                 if (dispatchError) {
+                    const decodedError = decodeDispatchError(api, dispatchError);
                     if (expectsError) {
-                        console.error(`${validityPrefix} ${proofType} Transaction failed with dispatch error: ${dispatchError}`);
+                        console.error(`${validityPrefix} ${proofType} Transaction failed with dispatch error: ${decodedError}`);
                     } else {
                         clearResources(timerRefs);
-                        console.error(`${validityPrefix} ${proofType} Transaction unexpectedly failed with dispatch error: ${dispatchError}`);
-                        reject(new Error(dispatchError.toString()));
+                        console.error(`${validityPrefix} ${proofType} Transaction unexpectedly failed with dispatch error: ${decodedError}`);
+                        reject(new Error(decodedError));
                         return;
                     }
                 }
                 if (status.isInBlock) {
                     handleInBlock(events, proofType, startTime, status.asInBlock.toString(), setAttestationId, expectsError);
+
                     // Set interval to log waiting status
                     timerRefs.interval = setInterval(() => {
                         if (!isFinalized) {
@@ -146,7 +179,7 @@ export const handleTransaction = async (
                 if (status.isFinalized) {
                     isFinalized = true;
                     clearResources(timerRefs);
-                    const result = await handleFinalized(proofType, expectsError, attestation_id, dispatchError, api, startTime);
+                    const result = await handleFinalized(proofType, expectsError, attestation_id, dispatchError, api, startTime, skipAttestation);
                     resolve({ result, attestationId: attestation_id });
                 }
             } catch (error) {

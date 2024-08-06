@@ -1,5 +1,22 @@
 # zkVerify-qa
 
+### Supported Proofs
+
+The list of supported proofs can be found in `src/config.ts`, add new proof types here if needed.
+
+### Send Proof
+
+Send a newly generated proof of a specific type by running:
+
+```shell
+npx ts-node src/send-proof/index.ts <proofType> <skipWaitingForAttestationEventBoolean>
+```
+
+Example:
+```shell
+npx ts-node src/send-proof/index.ts groth16 true
+```
+
 ### rpc-tests
 
 RPC schema and valid/invalid proof submission tests.
@@ -16,7 +33,7 @@ Spins up 3 zkVerify nodes, attestation bot & an Anvil ethereum node locally usin
 
 Submits proofs and checks attestation is collected and posted to Ethereum.
 
-Further details in e2e README.
+Further details in e2e-tests README.
 
 
 ```shell
