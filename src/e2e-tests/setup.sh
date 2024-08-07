@@ -1,13 +1,23 @@
 #!/bin/bash
 set -eou pipefail
 
-# Command-line options
+# Default values
 rebuild=0
 fetch_latest=0
+zkverify_branch="main"
+nh_attestation_bot_branch="main"
+zkv_attestation_contracts_branch="main"
+docker_image_tag="latest"
+
+# Command-line options
 while [[ "$#" -gt 0 ]]; do
     case $1 in
         --rebuild) rebuild=1 ;;
         --fetch-latest) fetch_latest=1 ;;
+        --zkverify-branch) zkverify_branch="$2"; shift ;;
+        --nh-attestation-bot-branch) nh_attestation_bot_branch="$2"; shift ;;
+        --zkv-attestation-contracts-branch) zkv_attestation_contracts_branch="$2"; shift ;;
+        --docker-image-tag) docker_image_tag="$2"; shift ;;
         *) echo "Unknown parameter passed: $1"; exit 1 ;;
     esac
     shift
@@ -16,94 +26,136 @@ done
 # Repositories
 repo_names=("zkVerify" "nh-attestation-bot" "zkv-attestation-contracts")
 repo_urls=("https://github.com/HorizenLabs/zkVerify.git" "https://github.com/HorizenLabs/NH-attestation-bot.git" "https://github.com/HorizenLabs/zkv-attestation-contracts.git")
-repo_branches=("main" "main" "main")
+repo_branches=("$zkverify_branch" "$nh_attestation_bot_branch" "$zkv_attestation_contracts_branch")
 repo_count=${#repo_names[@]}
+
+function check_branch_exists() {
+    local repo_url=$1
+    local branch=$2
+    if git ls-remote --heads "$repo_url" "$branch" | grep -q "$branch"; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+function check_docker_hub_image() {
+    local image_name=$1
+    local tag=$2
+    if curl --silent --fail "https://hub.docker.com/v2/repositories/${image_name}/tags/${tag}/" > /dev/null; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+function check_local_image() {
+    local image_name=$1
+    local tag=$2
+    if docker images -q "${image_name}:${tag}" > /dev/null; then
+        return 0
+    else
+        return 1
+    fi
+}
 
 # Check if running in GitHub Actions
 if [ "${GITHUB_ACTIONS:-}" = "true" ]; then
-  echo "Running in GitHub Actions... Using pre-built zkVerify Docker image."
-  if [ -z "${GH_TOKEN:-}" ]; then
-    echo "Error: GH_TOKEN is not set. Please set it as a secret in your GitHub Actions workflow."
-    exit 1
-  fi
-  auth_prefix="https://${GH_TOKEN}@"
-  use_prebuilt_image=true
+    echo "Running in GitHub Actions... Docker image handling will be skipped."
+    if [ -z "${GH_TOKEN:-}" ]; then
+        echo "Error: GH_TOKEN is not set. Please set it as a secret in your GitHub Actions workflow."
+        exit 1
+    fi
+    auth_prefix="https://${GH_TOKEN}@"
+    use_prebuilt_image=true
 else
-  echo "Running locally. Using default authentication."
-  auth_prefix=""
-  use_prebuilt_image=false
+    echo "Running locally. Using default authentication."
+    auth_prefix=""
+    use_prebuilt_image=false
 fi
 
 # Clone each repository into the services directory or fetch latest updates
 for ((i=0; i<repo_count; i++)); do
-  repo=${repo_names[$i]}
-  repo_url=${repo_urls[$i]}
-  repo_branch=${repo_branches[$i]}
-  target_dir="./services/$repo"
+    repo=${repo_names[$i]}
+    repo_url=${repo_urls[$i]}
+    repo_branch=${repo_branches[$i]}
+    target_dir="./services/$repo"
 
-  if [ ! -d "$target_dir" ]; then
-    echo "Directory $target_dir does not exist. Cloning..."
-    if [ -n "$auth_prefix" ]; then
-      # Running in GitHub Actions
-      git clone -b "$repo_branch" "${auth_prefix}${repo_url#https://}" "$target_dir"
-    else
-      # Running locally
-      git clone -b "$repo_branch" "${repo_url}" "$target_dir"
+    if ! check_branch_exists "$repo_url" "$repo_branch"; then
+        echo "Error: Branch '$repo_branch' does not exist in repository '$repo'."
+        exit 1
     fi
-    echo "Repository $repo cloned successfully."
-  else
-    echo "Directory $target_dir already exists."
-    if [ "$fetch_latest" -eq 1 ]; then
-      echo "Fetching latest for $repo..."
-      (cd "$target_dir" && git pull origin "$repo_branch")
+
+    if [ ! -d "$target_dir" ]; then
+        echo "Directory $target_dir does not exist. Cloning..."
+        if [ -n "$auth_prefix" ]; then
+            # Running in GitHub Actions
+            git clone -b "$repo_branch" "${auth_prefix}${repo_url#https://}" "$target_dir"
+        else
+            # Running locally
+            git clone -b "$repo_branch" "${repo_url}" "$target_dir"
+        fi
+        echo "Repository $repo cloned successfully."
     else
-      echo "Skipping update for $repo."
+        echo "Directory $target_dir already exists."
+        if [ "$fetch_latest" -eq 1 ]; then
+            echo "Fetching latest for $repo..."
+            (cd "$target_dir" && git fetch origin && git checkout "$repo_branch" && git pull origin "$repo_branch")
+        else
+            echo "Skipping update for $repo."
+        fi
     fi
-  fi
 done
 
+# Skip Docker handling if running in GitHub Actions
 if [ "$use_prebuilt_image" = false ]; then
-  echo "Pre-built image not selected... Configuring and bootstrapping zkVerify..."
-  cd services/zkVerify || exit 1
+    echo "Pre-built image not selected... Configuring and bootstrapping zkVerify..."
+    cd services/zkVerify || exit 1
 
-  # Source config
-  if [ -f "cfg" ]; then
-      source cfg
-  else
-      echo "Configuration file not found at the top level, check the path and filename."
-      exit 1
-  fi
+    # Source config
+    if [ -f "cfg" ]; then
+        source cfg
+    else
+        echo "Configuration file not found at the top level, check the path and filename."
+        exit 1
+    fi
 
-  # Check if Docker image exists and rebuild if not or if rebuild flag is passed in
-  image_name="horizenlabs/zkverify"
-  if [[ $(docker images -q "$image_name") && "$rebuild" -eq 0 ]]; then
-      echo "Image $image_name already exists and no rebuild requested, skipping bootstrap."
-  else
-      echo "Image $image_name does not exist or rebuild requested, running bootstrap..."
+    image_name="horizenlabs/zkverify"
 
-      containers=$(docker ps -a -q --filter ancestor="$image_name")
-      if [ -n "$containers" ]; then
-          echo "Stopping and removing containers using the image $image_name..."
-          docker stop $containers
-          docker rm -f $containers
-      fi
+    if check_local_image "$image_name" "$docker_image_tag"; then
+        echo "Using locally available image ${image_name}:${docker_image_tag}."
+    elif check_docker_hub_image "$image_name" "$docker_image_tag"; then
+        echo "Using Docker Hub image ${image_name}:${docker_image_tag}."
+        docker pull "${image_name}:${docker_image_tag}"
+    else
+        echo "Error: Image ${image_name}:${docker_image_tag} not found locally or on Docker Hub, or rebuild requested."
+        exit 1
+    fi
 
-      if docker images -q "$image_name"; then
-          echo "Removing image $image_name..."
-          docker rmi -f "$image_name"
-      fi
+    if [[ "$rebuild" -eq 1 ]]; then
+        containers=$(docker ps -a -q --filter ancestor="${image_name}:${docker_image_tag}")
+        if [ -n "$containers" ]; then
+            echo "Stopping and removing containers using the image ${image_name}:${docker_image_tag}..."
+            docker stop $containers
+            docker rm -f $containers
+        fi
 
-      if [ -f "docker/scripts/bootstrap.sh" ]; then
-          chmod +x docker/scripts/bootstrap.sh
-          ./docker/scripts/bootstrap.sh
-          echo "zkVerify is set up and ready."
-      else
-          echo "Bootstrap script not found in 'docker/scripts/', check the path and filename."
-          exit 1
-      fi
-  fi
+        if docker images -q "${image_name}:${docker_image_tag}"; then
+            echo "Removing image ${image_name}:${docker_image_tag}..."
+            docker rmi -f "${image_name}:${docker_image_tag}"
+        fi
 
-  cd ../..
+        if [ -f "docker/scripts/bootstrap.sh" ]; then
+            chmod +x docker/scripts/bootstrap.sh
+            ./docker/scripts/bootstrap.sh
+            echo "zkVerify is set up and ready."
+        else
+            echo "Bootstrap script not found in 'docker/scripts/', check the path and filename."
+            exit 1
+        fi
+    fi
+
+    cd ../..
 fi
 
 echo "Setup completed."

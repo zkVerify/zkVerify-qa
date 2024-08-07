@@ -1,3 +1,4 @@
+version: "3.8"
 
 services:
   anvil-node:
@@ -11,7 +12,7 @@ services:
       - "8545:8545"
 
   local_node:
-    image: horizenlabs/zkverify:latest
+    image: horizenlabs/zkverify:${ZKVERIFY_IMAGE_TAG}
     env_file:
       - ./services/zkVerify/docker/resources/envs/.env.local
     ports:
@@ -19,12 +20,12 @@ services:
       - "30333:30333"
 
   node_alice:
-    image: horizenlabs/zkverify:latest
+    image: horizenlabs/zkverify:${ZKVERIFY_IMAGE_TAG}
     env_file:
       - ./services/zkVerify/docker/resources/envs/.env.alice
 
   node_bob:
-    image: horizenlabs/zkverify:latest
+    image: horizenlabs/zkverify:${ZKVERIFY_IMAGE_TAG}
     env_file:
       - ./services/zkVerify/docker/resources/envs/.env.bob
     volumes:
