@@ -6,6 +6,9 @@ on:
       zkverify_tag:
         description: 'Docker image tag for zkverify'
         default: 'latest'
+      zkverify_branch:
+        description: 'Branch for zkVerify repository'
+        default: 'main'
       attestation_bot_branch:
         description: 'Branch for attestation bot'
         default: 'main'
@@ -20,6 +23,11 @@ on:
         required: false
         type: string
         default: 'latest'
+      zkverify_branch:
+        description: 'Branch for zkVerify repository'
+        required: false
+        type: string
+        default: 'main'
       attestation_bot_branch:
         description: 'Branch for attestation bot'
         required: false
@@ -52,7 +60,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           ./setup.sh --fetch-latest \
-            --zkverify-branch ${{ github.event.inputs.zkverify_tag || inputs.zkverify_tag }} \
+            --zkverify-branch ${{ github.event.inputs.zkverify_branch || inputs.zkverify_branch }} \
             --nh-attestation-bot-branch ${{ github.event.inputs.attestation_bot_branch || inputs.attestation_bot_branch }} \
             --zkv-attestation-contracts-branch ${{ github.event.inputs.zkv_contracts_branch || inputs.zkv_contracts_branch }}
         working-directory: src/e2e-tests
