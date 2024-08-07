@@ -29,16 +29,6 @@ repo_urls=("https://github.com/HorizenLabs/zkVerify.git" "https://github.com/Hor
 repo_branches=("$zkverify_branch" "$nh_attestation_bot_branch" "$zkv_attestation_contracts_branch")
 repo_count=${#repo_names[@]}
 
-function check_branch_exists() {
-    local repo_url=$1
-    local branch=$2
-    if git ls-remote --heads "${repo_url}" "$branch" | grep -q "$branch"; then
-        return 0
-    else
-        return 1
-    fi
-}
-
 function check_docker_hub_image() {
     local image_name=$1
     local tag=$2
@@ -80,11 +70,6 @@ for ((i=0; i<repo_count; i++)); do
     repo_url=${repo_urls[$i]}
     repo_branch=${repo_branches[$i]}
     target_dir="./services/$repo"
-
-    if ! check_branch_exists "${auth_prefix}${repo_url#https://}" "$repo_branch"; then
-        echo "Error: Branch '$repo_branch' does not exist in repository '$repo'."
-        exit 1
-    fi
 
     if [ ! -d "$target_dir" ]; then
         echo "Directory $target_dir does not exist. Cloning..."
