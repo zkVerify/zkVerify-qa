@@ -32,7 +32,7 @@ repo_count=${#repo_names[@]}
 function check_branch_exists() {
     local repo_url=$1
     local branch=$2
-    if git ls-remote --heads "$repo_url" "$branch" | grep -q "$branch"; then
+    if git ls-remote --heads "${repo_url}" "$branch" | grep -q "$branch"; then
         return 0
     else
         return 1
@@ -81,7 +81,7 @@ for ((i=0; i<repo_count; i++)); do
     repo_branch=${repo_branches[$i]}
     target_dir="./services/$repo"
 
-    if ! check_branch_exists "$repo_url" "$repo_branch"; then
+    if ! check_branch_exists "${auth_prefix}${repo_url#https://}" "$repo_branch"; then
         echo "Error: Branch '$repo_branch' does not exist in repository '$repo'."
         exit 1
     fi
@@ -93,7 +93,7 @@ for ((i=0; i<repo_count; i++)); do
             git clone -b "$repo_branch" "${auth_prefix}${repo_url#https://}" "$target_dir"
         else
             # Running locally
-            git clone -b "$repo_branch" "${repo_url}" "$target_dir"
+            git clone -b "$repo_branch" "$repo_url" "$target_dir"
         fi
         echo "Repository $repo cloned successfully."
     else
