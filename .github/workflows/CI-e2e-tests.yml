@@ -71,9 +71,9 @@ jobs:
 
       - name: Set up Docker containers
         run: |
-          docker-compose down -v
-          ZKVERIFY_IMAGE_TAG=${{ github.event.inputs.zkverify_tag || inputs.zkverify_tag }} docker-compose build --no-cache
-          ZKVERIFY_IMAGE_TAG=${{ github.event.inputs.zkverify_tag || inputs.zkverify_tag }} docker-compose up -d
+          docker compose down -v
+          ZKVERIFY_IMAGE_TAG=${{ github.event.inputs.zkverify_tag || inputs.zkverify_tag }} docker compose build --no-cache
+          ZKVERIFY_IMAGE_TAG=${{ github.event.inputs.zkverify_tag || inputs.zkverify_tag }} docker compose up -d
         working-directory: src/e2e-tests
 
       - name: Wait for Ethereum contract to be deployed
@@ -81,8 +81,8 @@ jobs:
           MAX_WAIT_TIME=300
           wait_time=0
           while true; do
-            if docker-compose exec -T anvil-node test -f /data/contract_data.txt; then
-              CONTRACT_ADDRESS=$(docker-compose exec -T anvil-node sh -c "sed -n '1p' /data/contract_data.txt | cut -d ' ' -f 3")
+            if docker compose exec -T anvil-node test -f /data/contract_data.txt; then
+              CONTRACT_ADDRESS=$(docker compose exec -T anvil-node sh -c "sed -n '1p' /data/contract_data.txt | cut -d ' ' -f 3")
               if [ ! -z "$CONTRACT_ADDRESS" ]; then
                 echo "Contract data is ready."
                 echo "ZKV_CONTRACT=$CONTRACT_ADDRESS" >> $GITHUB_ENV
@@ -148,22 +148,22 @@ jobs:
           fi
         working-directory: src/e2e-tests
 
-      - name: Send Slack Notification
-        if: always()
-        uses: slackapi/slack-github-action@v1.25.0
-        with:
-          payload: |
-            {
-              "blocks": [
-                {
-                  "type": "section",
-                  "text": {
-                    "type": "mrkdwn",
-                    "text": "${{ env.OVERALL_STATUS_EMOJI }} *zkVerify E2E (Local) TEST STATUS:* ${{ env.OVERALL_STATUS }} ${{ env.OVERALL_STATUS_EMOJI }}\n*Test Results:*\n*Passed:* ${{ env.PASSED }}\n*Failed:* ${{ env.FAILED }}\n*Skipped:* ${{ env.SKIPPED }}\n*Total:* ${{ env.TOTAL }}\n\n*Build URL:* <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|Click here to view the build>"
-                  }
-                }
-              ]
-            }
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.QA_SLACK_WEBHOOK_URL }}
-          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+      # - name: Send Slack Notification
+      #   if: always()
+      #   uses: slackapi/slack-github-action@v1.25.0
+      #   with:
+      #     payload: |
+      #       {
+      #         "blocks": [
+      #           {
+      #             "type": "section",
+      #             "text": {
+      #               "type": "mrkdwn",
+      #               "text": "${{ env.OVERALL_STATUS_EMOJI }} *zkVerify E2E (Local) TEST STATUS:* ${{ env.OVERALL_STATUS }} ${{ env.OVERALL_STATUS_EMOJI }}\n*Test Results:*\n*Passed:* ${{ env.PASSED }}\n*Failed:* ${{ env.FAILED }}\n*Skipped:* ${{ env.SKIPPED }}\n*Total:* ${{ env.TOTAL }}\n\n*Build URL:* <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|Click here to view the build>"
+      #             }
+      #           }
+      #         ]
+      #       }
+      #   env:
+      #     SLACK_WEBHOOK_URL: ${{ secrets.QA_SLACK_WEBHOOK_URL }}
+      #     SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
