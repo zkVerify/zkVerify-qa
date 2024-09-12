@@ -99,12 +99,12 @@ jobs:
           done
         working-directory: src/e2e-tests
 
-      - name: Check Attestation Bot Logs
-        run: docker logs attestation-bot || echo "Attestation bot logs not available"
-
-      - name: Check Ethereum Node Status
+      - name: Check Running Services
         run: |
-          curl -X POST --data '{"jsonrpc":"2.0","method":"eth_syncing","params":[],"id":1}' -H "Content-Type: application/json" http://localhost:8545
+          docker ps
+
+      - name: Check Attestation Bot Logs
+        run: docker logs e2e-tests-attestation-bot-1 || echo "Attestation bot logs not available"
 
       - name: Run E2E tests
         id: run_tests

@@ -56,13 +56,18 @@ describe('Proof Submission and Event Handling', () => {
 
             const params = getParams(true);
             const transaction = submitProof(api, pallet, params);
+            console.log(`Proof submitted, waiting for NewAttestation event...`);
             const { result, attestationId } = await handleTransaction(api, transaction, account, proofType.toString(), startTime, false, timerRefs);
             expect(result).toBe('succeeded');
 
             // Poll the latestAttestationId on the deployed ZkVerifyAttestation.sol contract
+            console.log(`NewAttestation event received with ID: ${attestationId}`);
             expect(attestationId).not.toBeNull();
+
             const expectedId = parseInt(attestationId!, 10);
+            console.log(`Polling Ethereum contract for attestation ID: ${expectedId}`);
             const success = await pollLatestAttestationId(expectedId);
+
             if (!success) {
                 console.error(`Attestation ${expectedId} not found on Ethereum contract after timeout`);
                 // console.error(`Last known Ethereum block: ${await getLatestBlockNumber()}`);
@@ -70,7 +75,7 @@ describe('Proof Submission and Event Handling', () => {
             }
             expect(success).toBe(true);
         },
-        300000 // 5 minutes
+        120000 // 2 minutes
     );
 
     test.each(proofTypes)(
