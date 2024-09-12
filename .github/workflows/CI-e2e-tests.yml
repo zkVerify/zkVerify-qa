@@ -99,12 +99,11 @@ jobs:
           done
         working-directory: src/e2e-tests
 
-      - name: Check Running Services
-        run: |
-          docker ps
-
       - name: Check Attestation Bot Logs
-        run: docker logs e2e-tests-attestation-bot-1 || echo "Attestation bot logs not available"
+        run: |
+          echo "Waiting for services to start..."
+          sleep 120  # Give services some time to start
+          docker logs e2e-tests-attestation-bot-1 || echo "Attestation bot logs not available"
 
       - name: Run E2E tests
         id: run_tests
