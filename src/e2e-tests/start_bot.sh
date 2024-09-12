@@ -31,9 +31,12 @@ echo "Anvil node is ready."
 echo "Waiting for contract data to be ready..."
 while true; do
     if [ -f /data/contract_data.txt ]; then
+        echo "Contents of /data/contract_data.txt:"
+        cat /data/contract_data.txt
+
         CONTRACT_ADDRESS=$(sed -n '1p' /data/contract_data.txt | cut -d ' ' -f 3)
-        SEED_PHRASE=$(sed -n '2p' /data/contract_data.txt | cut -d ' ' -f 3)
-        if [ ! -z "$CONTRACT_ADDRESS" ] && [ ! -z "$SEED_PHRASE" ]; then
+        PRIVATE_KEY=$(sed -n '2p' /data/contract_data.txt | cut -d ' ' -f 3-)
+        if [ ! -z "$CONTRACT_ADDRESS" ] && [ ! -z "$PRIVATE_KEY" ]; then
             echo "Contract data is ready."
             break
         fi
@@ -47,15 +50,17 @@ while true; do
     wait_time=$((wait_time + 2))
 done
 
-
 echo "Debug: Contract Address: $CONTRACT_ADDRESS"
-echo "Debug: Seed Phrase (first few words): $(echo $SEED_PHRASE | cut -d ' ' -f 1-3) ..."
-echo "Debug: Number of words in Seed Phrase: $(echo $SEED_PHRASE | wc -w)"
+echo "Debug: Private Key (first 10 characters): ${PRIVATE_KEY:0:10}..."
+
+# Ensure the private key starts with "0x"
+if [[ $PRIVATE_KEY != 0x* ]]; then
+    PRIVATE_KEY="0x$PRIVATE_KEY"
+fi
 
 # Export environment variables required by the bot
 export NH_ATTEST_BOT_NH_CONTRACT_ADDRESS=$CONTRACT_ADDRESS
-export NH_ATTEST_BOT_OPERATOR_SECRET_KEY=$SEED_PHRASE
-
+export NH_ATTEST_BOT_OPERATOR_SECRET_KEY=$PRIVATE_KEY
 
 echo "Debug: Environment variables set:"
 echo "NH_ATTEST_BOT_NH_CONTRACT_ADDRESS=$NH_ATTEST_BOT_NH_CONTRACT_ADDRESS"
