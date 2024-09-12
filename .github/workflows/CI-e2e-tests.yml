@@ -76,6 +76,14 @@ jobs:
           ZKVERIFY_IMAGE_TAG=${{ github.event.inputs.zkverify_tag || inputs.zkverify_tag }} docker compose up -d
         working-directory: src/e2e-tests
 
+      - name: View Docker logs
+        run: |
+          echo "Waiting for services to start..."
+          sleep 120  # Give services some time to start
+          echo "Logs for local_node service:"
+          docker compose logs local_node
+        working-directory: src/e2e-tests
+
       - name: Wait for Ethereum contract to be deployed
         run: |
           MAX_WAIT_TIME=300
