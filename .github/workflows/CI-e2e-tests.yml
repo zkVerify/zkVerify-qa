@@ -42,8 +42,6 @@ on:
 jobs:
   e2e-build-and-test:
     runs-on: ubuntu-latest
-    env:
-      SEED_PHRASE: ${{ secrets.QA_SEED_PHRASE }}
 
     steps:
       - name: Checkout code
@@ -111,7 +109,7 @@ jobs:
         id: run_tests
         run: |
           mkdir -p reports
-          WEBSOCKET=ws://localhost:9944 ZKV_CONTRACT=${{ env.ZKV_CONTRACT }} SEED_PHRASE=${{ secrets.QA_SEED_PHRASE }} npm --prefix ../../ run test:e2e 2>&1 | tee reports/test_output.txt
+          WEBSOCKET=ws://localhost:9944 ZKV_CONTRACT=${{ env.ZKV_CONTRACT }} npm --prefix ../../ run test:e2e 2>&1 | tee reports/test_output.txt
         working-directory: src/e2e-tests
 
       - name: Parse Test Results
