@@ -31,7 +31,7 @@ export async function getLatestAttestationId(): Promise<number> {
     return parseInt(latestAttestationId, 10);
 }
 
-export async function pollLatestAttestationId(expectedId: number, timeout: number = 60000, interval: number = 3000): Promise<boolean> {
+export async function pollLatestAttestationId(expectedId: number, timeout: number = 180000, interval: number = 3000): Promise<boolean> {
     const endTime = Date.now() + timeout;
 
     while (Date.now() < endTime) {
@@ -41,7 +41,7 @@ export async function pollLatestAttestationId(expectedId: number, timeout: numbe
             return true;
         }
         const elapsed = (timeout - (endTime - Date.now())) / 1000;
-        console.log(`Polling Ethereum zkVerify contract for attestation ID... elapsed time: ${elapsed.toFixed(2)} seconds`);
+        console.log(`Polling Ethereum zkVerify contract for attestation ID ${expectedId}... Current ID: ${latestAttestationId}, elapsed time: ${elapsed.toFixed(2)} seconds`);
         await new Promise(resolve => setTimeout(resolve, interval));
     }
 

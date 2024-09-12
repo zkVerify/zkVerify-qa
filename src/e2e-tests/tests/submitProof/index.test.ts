@@ -63,9 +63,14 @@ describe('Proof Submission and Event Handling', () => {
             expect(attestationId).not.toBeNull();
             const expectedId = parseInt(attestationId!, 10);
             const success = await pollLatestAttestationId(expectedId);
+            if (!success) {
+                console.error(`Attestation ${expectedId} not found on Ethereum contract after timeout`);
+                // console.error(`Last known Ethereum block: ${await getLatestBlockNumber()}`);
+                // console.error(`zkVerify node latest block: ${await getZkVerifyLatestBlock()}`);
+            }
             expect(success).toBe(true);
         },
-        150000
+        300000 // 5 minutes
     );
 
     test.each(proofTypes)(

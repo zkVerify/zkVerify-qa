@@ -76,37 +76,6 @@ jobs:
           ZKVERIFY_IMAGE_TAG=${{ github.event.inputs.zkverify_tag || inputs.zkverify_tag }} docker compose up -d
         working-directory: src/e2e-tests
 
-      - name: View Docker logs
-        run: |
-          echo "Waiting for services to start..."
-          sleep 120  # Give services some time to start
-          echo "Logs for local_node service:"
-          docker compose logs local_node
-        working-directory: src/e2e-tests
-
-      - name: Check port accessibility
-        run: |
-          echo "Checking HTTP accessibility:"
-          curl -v http://localhost:9944 || echo "HTTP request to port 9944 failed"
-
-          echo "Checking raw TCP connection:"
-          timeout 5 bash -c '</dev/tcp/localhost/9944 && echo Port 9944 is open || echo Port 9944 is closed'
-
-          echo "Attempting WebSocket connection:"
-          curl --include \
-              --no-buffer \
-              --header "Connection: Upgrade" \
-              --header "Upgrade: websocket" \
-              --header "Host: localhost:9944" \
-              --header "Origin: http://localhost:9944" \
-              --header "Sec-WebSocket-Key: SGVsbG8sIHdvcmxkIQ==" \
-              --header "Sec-WebSocket-Version: 13" \
-              http://localhost:9944/ \
-          || echo "WebSocket connection attempt failed"
-
-          echo "Listing all listening ports:"
-          netstat -tuln || ss -tuln || echo "Neither netstat nor ss is available"
-
       - name: Wait for Ethereum contract to be deployed
         run: |
           MAX_WAIT_TIME=300
@@ -129,6 +98,13 @@ jobs:
             wait_time=$((wait_time + 3))
           done
         working-directory: src/e2e-tests
+
+      - name: Check Attestation Bot Logs
+        run: docker logs attestation-bot || echo "Attestation bot logs not available"
+
+      - name: Check Ethereum Node Status
+        run: |
+          curl -X POST --data '{"jsonrpc":"2.0","method":"eth_syncing","params":[],"id":1}' -H "Content-Type: application/json" http://localhost:8545
 
       - name: Run E2E tests
         id: run_tests
