@@ -84,6 +84,29 @@ jobs:
           docker compose logs local_node
         working-directory: src/e2e-tests
 
+      - name: Check port accessibility
+        run: |
+          echo "Checking HTTP accessibility:"
+          curl -v http://localhost:9944 || echo "HTTP request to port 9944 failed"
+
+          echo "Checking raw TCP connection:"
+          timeout 5 bash -c '</dev/tcp/localhost/9944 && echo Port 9944 is open || echo Port 9944 is closed'
+
+          echo "Attempting WebSocket connection:"
+          curl --include \
+              --no-buffer \
+              --header "Connection: Upgrade" \
+              --header "Upgrade: websocket" \
+              --header "Host: localhost:9944" \
+              --header "Origin: http://localhost:9944" \
+              --header "Sec-WebSocket-Key: SGVsbG8sIHdvcmxkIQ==" \
+              --header "Sec-WebSocket-Version: 13" \
+              http://localhost:9944/ \
+          || echo "WebSocket connection attempt failed"
+
+          echo "Listing all listening ports:"
+          netstat -tuln || ss -tuln || echo "Neither netstat nor ss is available"
+
       - name: Wait for Ethereum contract to be deployed
         run: |
           MAX_WAIT_TIME=300
@@ -111,7 +134,7 @@ jobs:
         id: run_tests
         run: |
           mkdir -p reports
-          WEBSOCKET=wss://localhost:9944 ZKV_CONTRACT=${{ env.ZKV_CONTRACT }} npm --prefix ../../ run test:e2e 2>&1 | tee reports/test_output.txt
+          WEBSOCKET=ws://localhost:9944 ZKV_CONTRACT=${{ env.ZKV_CONTRACT }} npm --prefix ../../ run test:e2e 2>&1 | tee reports/test_output.txt
         working-directory: src/e2e-tests
 
       - name: Parse Test Results
