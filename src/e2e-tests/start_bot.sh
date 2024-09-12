@@ -31,9 +31,6 @@ echo "Anvil node is ready."
 echo "Waiting for contract data to be ready..."
 while true; do
     if [ -f /data/contract_data.txt ]; then
-        echo "Contents of /data/contract_data.txt:"
-        cat /data/contract_data.txt
-
         CONTRACT_ADDRESS=$(sed -n '1p' /data/contract_data.txt | cut -d ' ' -f 3)
         PRIVATE_KEY=$(sed -n '2p' /data/contract_data.txt | cut -d ' ' -f 3-)
         if [ ! -z "$CONTRACT_ADDRESS" ] && [ ! -z "$PRIVATE_KEY" ]; then
@@ -61,26 +58,16 @@ if [[ $PRIVATE_KEY != 0x* ]]; then
 fi
 
 # Set environment variables required by the bot
+#export ZKV_ATTEST_BOT_GRAPHQL_SERVICE_URL=
 export ZKV_ATTEST_BOT_ETH_JSON_RPC_PROVIDER_URL="http://anvil-node:8545"
 export ZKV_ATTEST_BOT_OPERATOR_SECRET_KEY="$PRIVATE_KEY"
 export ZKV_ATTEST_BOT_CONTRACT_ADDRESS="$CONTRACT_ADDRESS"
-export ZKV_ATTEST_BOT_GRAPHQL_SERVICE_URL="http://indexer:8000/graphql"
-export ZKV_ATTEST_BOT_POLL_INTERVAL=500
-export ZKV_ATTEST_BOT_ETH_MAX_RETRIES=10
-export ZKV_ATTEST_BOT_ETH_RETRY_INTERVAL=60000
-export ZKV_ATTEST_BOT_ETH_RETRY_GAS_INCREASE_PERCENTAGE=30
-export ZKV_ATTEST_BOT_LOG_LEVEL=debug
 
 echo "Debug: Environment variables set:"
+# echo "ZKV_ATTEST_BOT_GRAPHQL_SERVICE_URL=$ZKV_ATTEST_BOT_GRAPHQL_SERVICE_URL"
 echo "ZKV_ATTEST_BOT_ETH_JSON_RPC_PROVIDER_URL=$ZKV_ATTEST_BOT_ETH_JSON_RPC_PROVIDER_URL"
 echo "ZKV_ATTEST_BOT_OPERATOR_SECRET_KEY (first 10 characters): ${ZKV_ATTEST_BOT_OPERATOR_SECRET_KEY:0:10}..."
 echo "ZKV_ATTEST_BOT_CONTRACT_ADDRESS=$ZKV_ATTEST_BOT_CONTRACT_ADDRESS"
-echo "ZKV_ATTEST_BOT_GRAPHQL_SERVICE_URL=$ZKV_ATTEST_BOT_GRAPHQL_SERVICE_URL"
-echo "ZKV_ATTEST_BOT_POLL_INTERVAL=$ZKV_ATTEST_BOT_POLL_INTERVAL"
-echo "ZKV_ATTEST_BOT_ETH_MAX_RETRIES=$ZKV_ATTEST_BOT_ETH_MAX_RETRIES"
-echo "ZKV_ATTEST_BOT_ETH_RETRY_INTERVAL=$ZKV_ATTEST_BOT_ETH_RETRY_INTERVAL"
-echo "ZKV_ATTEST_BOT_ETH_RETRY_GAS_INCREASE_PERCENTAGE=$ZKV_ATTEST_BOT_ETH_RETRY_GAS_INCREASE_PERCENTAGE"
-echo "ZKV_ATTEST_BOT_LOG_LEVEL=$ZKV_ATTEST_BOT_LOG_LEVEL"
 
 # Start the bot
 echo "Starting the bot..."
