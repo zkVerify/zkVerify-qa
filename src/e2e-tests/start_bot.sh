@@ -47,12 +47,20 @@ while true; do
     wait_time=$((wait_time + 2))
 done
 
-echo "Contract Address: $CONTRACT_ADDRESS"
-echo "Private Key: $SEED_PHRASE"
+
+echo "Debug: Contract Address: $CONTRACT_ADDRESS"
+echo "Debug: Seed Phrase (first few words): $(echo $SEED_PHRASE | cut -d ' ' -f 1-3) ..."
+echo "Debug: Number of words in Seed Phrase: $(echo $SEED_PHRASE | wc -w)"
 
 # Export environment variables required by the bot
 export NH_ATTEST_BOT_NH_CONTRACT_ADDRESS=$CONTRACT_ADDRESS
 export NH_ATTEST_BOT_OPERATOR_SECRET_KEY=$SEED_PHRASE
 
+
+echo "Debug: Environment variables set:"
+echo "NH_ATTEST_BOT_NH_CONTRACT_ADDRESS=$NH_ATTEST_BOT_NH_CONTRACT_ADDRESS"
+echo "NH_ATTEST_BOT_OPERATOR_SECRET_KEY=[REDACTED]"
+
 # Start the bot
+echo "Starting the bot..."
 node src/main.js
