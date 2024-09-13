@@ -108,15 +108,26 @@ jobs:
         working-directory: src/e2e-tests
 
       - name: Wait for Ethereum contract to be deployed
-        id: wait-for-contract
-        timeout-minutes: 5
         run: |
-          while [ ! -f /tmp/contract_data.txt ]; do
-            sleep 5
-            docker compose exec -T anvil-node cat /data/contract_data.txt > /tmp/contract_data.txt || true
+          MAX_WAIT_TIME=300
+          wait_time=0
+          while true; do
+            if docker compose exec -T anvil-node test -f /data/contract_data.txt; then
+              CONTRACT_ADDRESS=$(docker compose exec -T anvil-node sh -c "sed -n '1p' /data/contract_data.txt | cut -d ' ' -f 3")
+              if [ ! -z "$CONTRACT_ADDRESS" ]; then
+                echo "Contract data is ready."
+                echo "ZKV_CONTRACT=$CONTRACT_ADDRESS" >> $GITHUB_ENV
+                break
+              fi
+            fi
+            if [ "$wait_time" -ge "$MAX_WAIT_TIME" ]; then
+              echo "Timeout reached: contract data file is not ready."
+              exit 1
+            fi
+            echo "Waiting for contract data file to be ready..."
+            sleep 3
+            wait_time=$((wait_time + 3))
           done
-          CONTRACT_ADDRESS=$(sed -n '1p' /tmp/contract_data.txt | cut -d ' ' -f 3)
-          echo "ZKV_CONTRACT=$CONTRACT_ADDRESS" >> $GITHUB_ENV
         working-directory: src/e2e-tests
 
       - name: Check Attestation Bot Logs
