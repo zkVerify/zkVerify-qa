@@ -96,7 +96,11 @@ jobs:
       - name: Wait for services to be ready
         run: |
           sleep 60
-        
+      
+      - name: Check Local Node logs
+        if: failure()
+        run: docker logs local_node
+        working-directory: src/e2e-tests
 
       - name: Check Subquery Node logs
         if: failure()

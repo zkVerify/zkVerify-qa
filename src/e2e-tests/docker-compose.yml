@@ -78,7 +78,7 @@ services:
     entrypoint: [ /usr/local/bin/entrypoint.sh ]
     command:
       - -f=/app
-      - --network-endpoint=ws://localhost:${NODE_NET_RPC_WS_PORT}
+      - --network-endpoint=ws://local_node:9944
       - --db-schema=app
       - --workers=${SUBQUERY_NODE_WORKERS}
       - --batch-size=${SUBQUERY_NODE_BATCH_SIZE}
