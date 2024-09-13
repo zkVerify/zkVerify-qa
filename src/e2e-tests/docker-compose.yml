@@ -22,10 +22,12 @@ services:
     ports:
       - "${NODE_NET_RPC_WS_PORT}:${NODE_NET_RPC_WS_PORT}"
       - "${NODE_NET_P2P_PORT}:${NODE_NET_P2P_PORT}"
+    expose:
+      - "${NODE_NET_RPC_WS_PORT}"
     healthcheck:
       test: ["CMD-SHELL", "sleep 120 && exit 0"]
       interval: 130s
-      timeout: 10s
+      timeout: 140s
       retries: 1
       start_period: 0s
 
