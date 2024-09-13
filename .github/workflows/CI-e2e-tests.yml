@@ -93,19 +93,8 @@ jobs:
           ZKVERIFY_IMAGE_TAG=${{ github.event.inputs.zkverify_tag || inputs.zkverify_tag }} docker compose up -d
         working-directory: src/e2e-tests
       
-      - name: Wait for services to be ready
-        run: |
-          sleep 60
-      
-      - name: Check Local Node logs
-        if: failure()
-        run: docker logs local_node
-        working-directory: src/e2e-tests
-
-      - name: Check Subquery Node logs
-        if: failure()
-        run: docker logs subquery-node
-        working-directory: src/e2e-tests
+      - name: Check anvil node logs
+        run: docker logs e2e-tests-anvil-node-1 || echo "Anvil node logs not available"
 
       - name: Wait for Ethereum contract to be deployed
         run: |
