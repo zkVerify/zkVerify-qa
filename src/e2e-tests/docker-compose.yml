@@ -1,4 +1,6 @@
-version: "3.8"
+volumes:
+  contract-data:
+  subquery-postgres-data:
 
 services:
   anvil-node:
@@ -11,13 +13,15 @@ services:
     ports:
       - "8545:8545"
 
-  local_node:
+  node:
     image: horizenlabs/zkverify:${ZKVERIFY_IMAGE_TAG}
+    container_name: "${NODE_NAME}"
+    hostname: "${NODE_NAME}"
     env_file:
       - ./services/zkVerify/docker/resources/envs/.env.local
     ports:
-      - "9944:9944"
-      - "30333:30333"
+      - "${NODE_NET_RPC_WS_PORT}:${NODE_NET_RPC_WS_PORT}"
+      - "${NODE_NET_P2P_PORT}:${NODE_NET_P2P_PORT}"
 
   node_alice:
     image: horizenlabs/zkverify:${ZKVERIFY_IMAGE_TAG}
@@ -31,6 +35,100 @@ services:
     volumes:
       - ./services/zkVerify/docker/resources/deploy:/data/config
 
+  subquery-postgres:
+    image: horizenlabs/zkverify-subquery-postgres:1.0.0
+    container_name: subquery-postgres
+    hostname: subquery-postgres
+    volumes:
+      - subquery-postgres-data:/var/lib/postgresql/data
+    environment:
+      - "POSTGRES_PASSWORD=${SUBQUERY_DB_PASS}"
+    expose:
+      - ${SUBQUERY_DB_PORT}
+    healthcheck:
+      test: [ CMD-SHELL, pg_isready -U postgres ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  subquery-node:
+    image: horizenlabs/zkverify-subquery-node:${SUBQUERY_NODE_VERSION}
+    container_name: subquery-node
+    hostname: subquery-node
+    depends_on:
+      subquery-postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    environment:
+      - "DB_USER=${SUBQUERY_DB_USER}"
+      - "DB_PASS=${SUBQUERY_DB_PASS}"
+      - "DB_DATABASE=${SUBQUERY_DB_DATABASE}"
+      - DB_HOST=subquery-postgres
+      - "DB_PORT=${SUBQUERY_DB_PORT}"
+      - "SUBQUERY_NODE_CHAIN_ID=${PERSISTENT_SUBQUERY_NODE_CHAIN_ID}"
+    expose:
+      - ${SUBQUERY_NODE_PORT}
+    volumes:
+      - ./configs/attestation-bot/entrypoint.sh:/usr/local/bin/entrypoint.sh:ro
+    entrypoint: [ /usr/local/bin/entrypoint.sh ]
+    command:
+      - -f=/app
+      - --network-endpoint=ws://${NODE_NAME}:${NODE_NET_RPC_WS_PORT}
+      - --db-schema=app
+      - --workers=${SUBQUERY_NODE_WORKERS}
+      - --batch-size=${SUBQUERY_NODE_BATCH_SIZE}
+      - --port=${SUBQUERY_NODE_PORT}
+      - --unfinalized-blocks=false
+      - --skip-transactions
+    healthcheck:
+      test:
+        [
+          CMD,
+          curl,
+          -f,
+          "http://subquery-node:${SUBQUERY_NODE_PORT}/ready"
+        ]
+      interval: 3s
+      timeout: 5s
+      retries: 10
+
+  graphql-engine:
+    image: subquerynetwork/subql-query:${SUBQL_QUERY_VERSION}
+    container_name: graphql-engine
+    hostname: graphql-engine
+    depends_on:
+      subquery-postgres:
+        condition: service_healthy
+      subquery-node:
+        condition: service_healthy
+    restart: always
+    environment:
+      - "DB_USER=${SUBQUERY_DB_USER}"
+      - "DB_PASS=${SUBQUERY_DB_PASS}"
+      - "DB_DATABASE=${SUBQUERY_DB_DATABASE}"
+      - DB_HOST=subquery-postgres
+      - "DB_PORT=${SUBQUERY_DB_PORT}"
+      - "PORT=${GRAPHQL_QUERY_PORT}"
+    expose:
+      - ${GRAPHQL_QUERY_PORT}
+    command:
+      - --name=app
+      - --indexer=http://subquery-node:${SUBQUERY_NODE_PORT}
+    healthcheck:
+      test:
+        [
+          CMD,
+          curl,
+          "http://graphql-engine:${GRAPHQL_QUERY_PORT}",
+          -X,
+          POST,
+          --data-raw,
+          "{\"query\":\"{_metadata {chain lastProcessedHeight lastProcessedTimestamp}}\""
+        ]
+      interval: 3s
+      timeout: 5s
+      retries: 10
+
   attestation-bot:
     build:
       context: ./services/nh-attestation-bot/bot
@@ -42,18 +140,8 @@ services:
       - "3000:3000"
     depends_on:
       - anvil-node
-      - local_node
+      - node
       - node_alice
       - node_bob
-    environment:
-      NH_ATTEST_BOT_NH_WS_PROVIDER_URL: "ws://local_node:9944"
-      NH_ATTEST_BOT_ETH_JSON_RPC_PROVIDER_URL: "http://anvil-node:8545"
-      NH_ATTEST_BOT_POLL_INTERVAL: "500"
-      NH_ATTEST_BOT_ETH_MAX_RETRIES: "10"
-      NH_ATTEST_BOT_ETH_RETRY_INTERVAL: "60000"
-      NH_ATTEST_BOT_ETH_RETRY_GAS_INCREASE_PERCENTAGE: "30"
-      NH_ATTEST_BOT_LOG_LEVEL: "debug"
+      - graphql-engine
     command: ["/bin/sh", "/app/start_bot.sh"]
-
-volumes:
-  contract-data:

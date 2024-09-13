@@ -10,7 +10,6 @@ yarn.lock
 e2e-tests/bin
 lcov.info
 benchmarking_errors.txt
-.env
 rpc-tests/node_modules
 rpc-tests//reports
 test-report-*.html
