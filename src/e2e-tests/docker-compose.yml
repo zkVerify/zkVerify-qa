@@ -22,6 +22,12 @@ services:
     ports:
       - "${NODE_NET_RPC_WS_PORT}:${NODE_NET_RPC_WS_PORT}"
       - "${NODE_NET_P2P_PORT}:${NODE_NET_P2P_PORT}"
+    healthcheck:
+      test: ["CMD-SHELL", "sleep 120 && exit 0"]
+      interval: 130s
+      timeout: 10s
+      retries: 1
+      start_period: 0s
 
   node_alice:
     image: horizenlabs/zkverify:${ZKVERIFY_IMAGE_TAG}
@@ -61,7 +67,7 @@ services:
       anvil-node:
         condition: service_started
       local_node:
-        condition: service_started
+        condition: service_healthy
     restart: unless-stopped
     environment:
       - "DB_USER=${SUBQUERY_DB_USER}"
