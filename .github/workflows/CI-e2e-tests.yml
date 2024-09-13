@@ -39,6 +39,9 @@ on:
         type: string
         default: 'main'
 
+env:
+  NODE_VERSION: '18'
+
 jobs:
   e2e-build-and-test:
     runs-on: ubuntu-latest
@@ -50,7 +53,21 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Cache Node.js modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Pull Docker image for zkVerify
         run: docker pull horizenlabs/zkverify:${{ github.event.inputs.zkverify_tag || inputs.zkverify_tag }}
@@ -66,7 +83,7 @@ jobs:
         working-directory: src/e2e-tests
 
       - name: Install npm dependencies
-        run: npm install
+        run: npm ci
         working-directory: src
 
       - name: Set up Docker containers
@@ -77,32 +94,20 @@ jobs:
         working-directory: src/e2e-tests
 
       - name: Wait for Ethereum contract to be deployed
+        id: wait-for-contract
+        timeout-minutes: 5
         run: |
-          MAX_WAIT_TIME=300
-          wait_time=0
-          while true; do
-            if docker compose exec -T anvil-node test -f /data/contract_data.txt; then
-              CONTRACT_ADDRESS=$(docker compose exec -T anvil-node sh -c "sed -n '1p' /data/contract_data.txt | cut -d ' ' -f 3")
-              if [ ! -z "$CONTRACT_ADDRESS" ]; then
-                echo "Contract data is ready."
-                echo "ZKV_CONTRACT=$CONTRACT_ADDRESS" >> $GITHUB_ENV
-                break
-              fi
-            fi
-            if [ "$wait_time" -ge "$MAX_WAIT_TIME" ]; then
-              echo "Timeout reached: contract data file is not ready."
-              exit 1
-            fi
-            echo "Waiting for contract data file to be ready..."
-            sleep 3
-            wait_time=$((wait_time + 3))
+          while [ ! -f /tmp/contract_data.txt ]; do
+            sleep 5
+            docker compose exec -T anvil-node cat /data/contract_data.txt > /tmp/contract_data.txt || true
           done
+          CONTRACT_ADDRESS=$(sed -n '1p' /tmp/contract_data.txt | cut -d ' ' -f 3)
+          echo "ZKV_CONTRACT=$CONTRACT_ADDRESS" >> $GITHUB_ENV
         working-directory: src/e2e-tests
 
       - name: Check Attestation Bot Logs
         run: |
-          echo "Waiting for services to start..."
-          sleep 120  # Give services some time to start
+          sleep 60
           docker logs e2e-tests-attestation-bot-1 || echo "Attestation bot logs not available"
 
       - name: Run E2E tests
