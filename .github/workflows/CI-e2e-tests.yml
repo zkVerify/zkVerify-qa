@@ -96,12 +96,7 @@ jobs:
       - name: Wait for services to be ready
         run: |
           sleep 60
-          docker compose ps
-
-      - name: Check docker compose logs
-        if: failure()
-        run: docker compose logs
-        working-directory: src/e2e-tests
+        
 
       - name: Check Subquery Node logs
         if: failure()
