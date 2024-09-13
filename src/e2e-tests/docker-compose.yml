@@ -13,7 +13,7 @@ services:
     ports:
       - "8545:8545"
 
-  node:
+  local_node:
     image: horizenlabs/zkverify:${ZKVERIFY_IMAGE_TAG}
     container_name: "${NODE_NAME}"
     hostname: "${NODE_NAME}"
@@ -60,7 +60,7 @@ services:
         condition: service_healthy
       anvil-node:
         condition: service_started
-      node:
+      local_node:
         condition: service_started
     restart: unless-stopped
     environment:
@@ -145,7 +145,7 @@ services:
       - "3000:3000"
     depends_on:
       - anvil-node
-      - node
+      - local_node
       - node_alice
       - node_bob
       - graphql-engine
