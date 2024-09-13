@@ -92,6 +92,21 @@ jobs:
           ZKVERIFY_IMAGE_TAG=${{ github.event.inputs.zkverify_tag || inputs.zkverify_tag }} docker compose build --no-cache
           ZKVERIFY_IMAGE_TAG=${{ github.event.inputs.zkverify_tag || inputs.zkverify_tag }} docker compose up -d
         working-directory: src/e2e-tests
+      
+      - name: Wait for services to be ready
+        run: |
+          sleep 60
+          docker compose ps
+
+      - name: Check docker compose logs
+        if: failure()
+        run: docker compose logs
+        working-directory: src/e2e-tests
+
+      - name: Check Subquery Node logs
+        if: failure()
+        run: docker logs subquery-node
+        working-directory: src/e2e-tests
 
       - name: Wait for Ethereum contract to be deployed
         id: wait-for-contract
