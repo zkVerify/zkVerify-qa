@@ -65,7 +65,7 @@ services:
       - "DB_DATABASE=${SUBQUERY_DB_DATABASE}"
       - DB_HOST=subquery-postgres
       - "DB_PORT=${SUBQUERY_DB_PORT}"
-      - "SUBQUERY_NODE_CHAIN_ID=${PERSISTENT_SUBQUERY_NODE_CHAIN_ID}"
+      - "SUBQUERY_NODE_CHAIN_ID=${SUBQUERY_NODE_CHAIN_ID}"
     expose:
       - ${SUBQUERY_NODE_PORT}
     volumes:
