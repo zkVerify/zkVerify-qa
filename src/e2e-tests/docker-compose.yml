@@ -160,9 +160,4 @@ services:
       - .env
     ports:
       - "3000:3000"
-    depends_on:
-      - local_node
-      - node_alice
-      - node_bob
-      - graphql-engine
     command: ["/bin/sh", "/app/start_bot.sh"]
