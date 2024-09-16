@@ -124,7 +124,7 @@ jobs:
 
       - name: Check anvil logs
         run: |
-          docker logs e2e-tests-anvil-node-1
+          docker logs subquery-node
         working-directory: src/e2e-tests
 
       - name: Check attestation bot logs
