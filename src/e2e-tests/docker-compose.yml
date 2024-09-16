@@ -95,7 +95,7 @@ services:
     entrypoint: [/usr/local/bin/entrypoint.sh]
     command:
       - -f=/app
-      - --network-endpoint=ws://localhost:9944
+      - --network-endpoint=ws://local_node:9944
       - --db-schema=app
       - --workers=${SUBQUERY_NODE_WORKERS}
       - --batch-size=${SUBQUERY_NODE_BATCH_SIZE}
@@ -153,6 +153,9 @@ services:
     volumes:
       - contract-data:/data
       - ./start_bot.sh:/app/start_bot.sh
+    environment:
+      - ZKV_ATTEST_BOT_GRAPHQL_SERVICE_URL=http://graphql-engine:${GRAPHQL_QUERY_PORT}
+      - ZKV_ATTEST_BOT_ETH_JSON_RPC_PROVIDER_URL=http://anvil-node:8545
     env_file:
       - .env
     ports:
