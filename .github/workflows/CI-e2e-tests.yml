@@ -113,13 +113,18 @@ jobs:
           done
         working-directory: src/e2e-tests
 
-      - name: Wait 30 seconds for everything to initialize
+      - name: Wait 60 seconds for everything to initialize
         run: sleep 60
         working-directory: src/e2e-tests
 
       - name: Check running services
         run: |
           docker compose ps
+        working-directory: src/e2e-tests
+
+      - name: Check anvil logs
+        run: |
+          docker logs e2e-tests-anvil-node-1
         working-directory: src/e2e-tests
 
       - name: Check attestation bot logs
