@@ -222,7 +222,7 @@ jobs:
       - name: Cleanup Docker resources
         run: |
           echo "Cleaning up Docker resources..."
-          docker compose -f src/e2e-tests/docker-compose.yml down -v
+          docker compose -f docker-compose.yml down -v
           docker container prune -f
           docker network prune -f
           docker volume prune -f
