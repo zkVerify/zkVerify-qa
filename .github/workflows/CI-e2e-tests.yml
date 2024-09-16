@@ -131,7 +131,7 @@ jobs:
         id: run_tests
         run: |
           mkdir -p reports
-          npm --prefix ../../ run test:e2e 2>&1 | tee reports/test_output.txt
+          WEBSOCKET=ws://localhost:9944 ZKV_CONTRACT=${{ env.ZKV_CONTRACT }} npm --prefix ../../ run test:e2e 2>&1 | tee reports/test_output.txt
         working-directory: src/e2e-tests
 
       - name: Parse Test Results
