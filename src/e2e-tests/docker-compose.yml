@@ -24,6 +24,12 @@ services:
       - "${NODE_NET_P2P_PORT}:${NODE_NET_P2P_PORT}"
     expose:
       - "${NODE_NET_RPC_WS_PORT}"
+    healthcheck:
+      test: [CMD, curl, -f, "http://localhost:9944"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   node_alice:
     image: horizenlabs/zkverify:${ZKVERIFY_IMAGE_TAG}
