@@ -5,7 +5,7 @@ if (!process.env.ZKV_CONTRACT) {
     throw new Error('Required environment variable ZKV_CONTRACT is not set.');
 }
 
-const provider = new Web3.providers.HttpProvider('http://localhost:8545');
+const provider = new Web3.providers.HttpProvider('http://anvil-node:8545');
 const web3 = new Web3(provider);
 
 const contractABI = [
