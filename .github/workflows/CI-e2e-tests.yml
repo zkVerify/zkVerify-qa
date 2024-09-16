@@ -49,19 +49,30 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          clean: true
+          fetch-depth: 1
 
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: Cache Node.js modules
+      - name: Cache npm cache
         uses: actions/cache@v4
         with:
-          path: node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
-            ${{ runner.os }}-node-
+            ${{ runner.os }}-npm-
+
+      - name: Remove existing node_modules
+        run: rm -rf node_modules
+        working-directory: src
+
+      - name: Install npm dependencies
+        run: npm ci
+        working-directory: src
 
       - name: Login to Docker Hub
         uses: docker/login-action@v3
@@ -79,14 +90,10 @@ jobs:
             --zkv-attestation-contracts-branch ${{ github.event.inputs.zkv_contracts_branch || inputs.zkv_contracts_branch }}
         working-directory: src/e2e-tests
 
-      - name: Install npm dependencies
-        run: npm ci
-        working-directory: src
-
       - name: Set up Docker containers
         run: |
           docker compose down -v
-          ZKVERIFY_IMAGE_TAG=${{ github.event.inputs.zkverify_tag || inputs.zkverify_tag }} docker compose build --no-cache
+          ZKVERIFY_IMAGE_TAG=${{ github.event.inputs.zkverify_tag || inputs.zkverify_tag }} docker compose build --no-cache --pull
           ZKVERIFY_IMAGE_TAG=${{ github.event.inputs.zkverify_tag || inputs.zkverify_tag }} docker compose up -d
         working-directory: src/e2e-tests
 
@@ -181,24 +188,6 @@ jobs:
           fi
         working-directory: src/e2e-tests
 
-      - name: Cleanup Docker resources
-        if: always()
-        run: |
-          echo "Cleaning up Docker resources..."
-          docker compose down -v
-          docker container prune -f
-          docker network prune -f
-          docker volume prune -f
-          docker image prune -a -f
-          echo "Checking disk space..."
-          df -h
-          echo "Listing remaining Docker resources..."
-          docker ps -a
-          docker network ls
-          docker volume ls
-          docker images
-        working-directory: src/e2e-tests
-
       # - name: Send Slack Notification
       #   if: always()
       #   uses: slackapi/slack-github-action@v1.25.0
@@ -218,3 +207,31 @@ jobs:
       #   env:
       #     SLACK_WEBHOOK_URL: ${{ secrets.QA_SLACK_WEBHOOK_URL }}
       #     SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+
+  cleanup:
+    runs-on: ubuntu-latest
+    needs: e2e-build-and-test
+    if: always()
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          clean: true
+
+      - name: Cleanup Docker resources
+        run: |
+          echo "Cleaning up Docker resources..."
+          docker compose -f src/e2e-tests/docker-compose.yml down -v
+          docker container prune -f
+          docker network prune -f
+          docker volume prune -f
+          docker image prune -a -f
+          echo "Checking disk space..."
+          df -h
+          echo "Listing remaining Docker resources..."
+          docker ps -a
+          docker network ls
+          docker volume ls
+          docker images
+        working-directory: src/e2e-tests
