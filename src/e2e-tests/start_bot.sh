@@ -9,11 +9,6 @@ if ! command -v curl > /dev/null 2>&1; then
     apk add --no-cache curl
 fi
 
-if [ -f /data/contract_data.txt ]; then
-    echo "Clearing old contract data..."
-    rm /data/contract_data.txt
-fi
-
 echo "Checking if Substrate node is up..."
 while ! curl -m 10 -s http://local_node:9944/ > /dev/null; do
     echo "Waiting for Substrate node to be ready..."
@@ -61,8 +56,6 @@ if [[ $PRIVATE_KEY != 0x* ]]; then
 fi
 
 # Set environment variables required by the bot
-export ZKV_ATTEST_BOT_GRAPHQL_SERVICE_URL="${ZKV_ATTEST_BOT_GRAPHQL_SERVICE_URL}"
-export ZKV_ATTEST_BOT_ETH_JSON_RPC_PROVIDER_URL="http://anvil-node:8545"
 export ZKV_ATTEST_BOT_OPERATOR_SECRET_KEY="${PRIVATE_KEY}"
 export ZKV_ATTEST_BOT_CONTRACT_ADDRESS="${CONTRACT_ADDRESS}"
 

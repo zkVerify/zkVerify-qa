@@ -160,4 +160,15 @@ services:
       - .env
     ports:
       - "3000:3000"
+    depends_on:
+      anvil-node:
+        condition: service_started
+      local_node:
+        condition: service_healthy
+      node_alice:
+        condition: service_started
+      node_bob:
+        condition: service_started
+      graphql-engine:
+        condition: service_healthy
     command: ["/bin/sh", "/app/start_bot.sh"]
