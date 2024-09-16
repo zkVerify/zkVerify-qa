@@ -181,6 +181,24 @@ jobs:
           fi
         working-directory: src/e2e-tests
 
+      - name: Cleanup Docker resources
+        if: always()
+        run: |
+          echo "Cleaning up Docker resources..."
+          docker compose down -v
+          docker container prune -f
+          docker network prune -f
+          docker volume prune -f
+          docker image prune -a -f
+          echo "Checking disk space..."
+          df -h
+          echo "Listing remaining Docker resources..."
+          docker ps -a
+          docker network ls
+          docker volume ls
+          docker images
+        working-directory: src/e2e-tests
+
       # - name: Send Slack Notification
       #   if: always()
       #   uses: slackapi/slack-github-action@v1.25.0
