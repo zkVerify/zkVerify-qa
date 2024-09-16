@@ -4,43 +4,43 @@ on:
   workflow_dispatch:
     inputs:
       zkverify_tag:
-        description: 'Docker image tag for zkverify'
-        default: 'latest'
+        description: "Docker image tag for zkverify"
+        default: "latest"
       zkverify_branch:
-        description: 'Branch for zkVerify repository'
-        default: 'main'
+        description: "Branch for zkVerify repository"
+        default: "main"
       attestation_bot_branch:
-        description: 'Branch for attestation bot'
-        default: 'main'
+        description: "Branch for attestation bot"
+        default: "main"
       zkv_contracts_branch:
-        description: 'Branch for zkv attestation contracts'
-        default: 'main'
+        description: "Branch for zkv attestation contracts"
+        default: "main"
 
   workflow_call:
     inputs:
       zkverify_tag:
-        description: 'Docker image tag for zkverify'
+        description: "Docker image tag for zkverify"
         required: false
         type: string
-        default: 'latest'
+        default: "latest"
       zkverify_branch:
-        description: 'Branch for zkVerify repository'
+        description: "Branch for zkVerify repository"
         required: false
         type: string
-        default: 'main'
+        default: "main"
       attestation_bot_branch:
-        description: 'Branch for attestation bot'
+        description: "Branch for attestation bot"
         required: false
         type: string
-        default: 'main'
+        default: "main"
       zkv_contracts_branch:
-        description: 'Branch for zkv attestation contracts'
+        description: "Branch for zkv attestation contracts"
         required: false
         type: string
-        default: 'main'
+        default: "main"
 
 env:
-  NODE_VERSION: '18'
+  NODE_VERSION: "18"
 
 jobs:
   e2e-build-and-test:
@@ -92,9 +92,6 @@ jobs:
           ZKVERIFY_IMAGE_TAG=${{ github.event.inputs.zkverify_tag || inputs.zkverify_tag }} docker compose build --no-cache
           ZKVERIFY_IMAGE_TAG=${{ github.event.inputs.zkverify_tag || inputs.zkverify_tag }} docker compose up -d
         working-directory: src/e2e-tests
-      
-      - name: Check anvil node logs
-        run: docker logs e2e-tests-anvil-node-1 || echo "Anvil node logs not available"
 
       - name: Wait for Ethereum contract to be deployed
         run: |
@@ -119,22 +116,17 @@ jobs:
           done
         working-directory: src/e2e-tests
 
-      - name: Check Attestation Bot Logs
-        run: |
-          sleep 60
-          docker logs e2e-tests-attestation-bot-1 || echo "Attestation bot logs not available"
-
       - name: Run E2E tests
         id: run_tests
         run: |
           mkdir -p reports
-          WEBSOCKET=ws://localhost:9944 ZKV_CONTRACT=${{ env.ZKV_CONTRACT }} npm --prefix ../../ run test:e2e 2>&1 | tee reports/test_output.txt
+          WEBSOCKET=ws://local_node:9944 ZKV_CONTRACT=${{ env.ZKV_CONTRACT }} npm --prefix ../../ run test:e2e 2>&1 | tee reports/test_output.txt
         working-directory: src/e2e-tests
 
       - name: Parse Test Results
         run: |
           TEST_OUTPUT=$(cat reports/test_output.txt)
-          
+
           PASSED=0
           FAILED=0
           SKIPPED=0
