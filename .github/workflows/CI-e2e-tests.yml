@@ -113,6 +113,11 @@ jobs:
           done
         working-directory: src/e2e-tests
 
+      - name: Check services logs
+        run: |
+          docker compose logs
+        working-directory: src/e2e-tests
+
       - name: Run E2E tests
         id: run_tests
         run: |
