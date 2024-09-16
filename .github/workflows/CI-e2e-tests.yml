@@ -113,9 +113,14 @@ jobs:
           done
         working-directory: src/e2e-tests
 
-      - name: Check services logs
+      - name: Check running services
         run: |
-          docker compose logs
+          docker compose ps
+        working-directory: src/e2e-tests
+
+      - name: Check attestation bot logs
+        run: |
+          docker compose logs attestation-bot
         working-directory: src/e2e-tests
 
       - name: Run E2E tests

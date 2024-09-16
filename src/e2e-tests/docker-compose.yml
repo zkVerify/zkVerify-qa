@@ -2,10 +2,6 @@ volumes:
   contract-data:
   subquery-postgres-data:
 
-networks:
-  zkverify_network:
-    name: zkverify_network
-
 services:
   anvil-node:
     platform: linux/amd64
@@ -16,8 +12,6 @@ services:
       - contract-data:/data
     ports:
       - "8545:8545"
-    networks:
-      - zkverify_network
 
   local_node:
     image: horizenlabs/zkverify:${ZKVERIFY_IMAGE_TAG}
@@ -30,8 +24,6 @@ services:
       - "${NODE_NET_P2P_PORT}:${NODE_NET_P2P_PORT}"
     expose:
       - "${NODE_NET_RPC_WS_PORT}"
-    networks:
-      - zkverify_network
     healthcheck:
       test:
         [
@@ -53,8 +45,6 @@ services:
     image: horizenlabs/zkverify:${ZKVERIFY_IMAGE_TAG}
     env_file:
       - ./services/zkVerify/docker/resources/envs/.env.alice
-    networks:
-      - zkverify_network
 
   node_bob:
     image: horizenlabs/zkverify:${ZKVERIFY_IMAGE_TAG}
@@ -62,8 +52,6 @@ services:
       - ./services/zkVerify/docker/resources/envs/.env.bob
     volumes:
       - ./services/zkVerify/docker/resources/deploy:/data/config
-    networks:
-      - zkverify_network
 
   subquery-postgres:
     image: horizenlabs/zkverify-subquery-postgres:1.0.0
@@ -75,8 +63,6 @@ services:
       - "POSTGRES_PASSWORD=${SUBQUERY_DB_PASS}"
     expose:
       - ${SUBQUERY_DB_PORT}
-    networks:
-      - zkverify_network
     healthcheck:
       test: [CMD-SHELL, pg_isready -U postgres]
       interval: 5s
@@ -88,8 +74,6 @@ services:
     container_name: subquery-node
     hostname: subquery-node
     platform: linux/amd64
-    networks:
-      - zkverify_network
     depends_on:
       subquery-postgres:
         condition: service_healthy
@@ -144,8 +128,6 @@ services:
       - "PORT=${GRAPHQL_QUERY_PORT}"
     expose:
       - ${GRAPHQL_QUERY_PORT}
-    networks:
-      - zkverify_network
     command:
       - --name=app
       - --indexer=http://subquery-node:${SUBQUERY_NODE_PORT}
@@ -175,8 +157,6 @@ services:
       - .env
     ports:
       - "3000:3000"
-    networks:
-      - zkverify_network
     depends_on:
       - anvil-node
       - local_node
