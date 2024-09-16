@@ -50,6 +50,8 @@ forge build
 echo "Compiling and deploying contract..."
 ADDRESS=$(forge create ZkVerifyAttestation --rpc-url http://localhost:8545 --private-key $FIRST_PRIVATE_KEY --constructor-args $FIRST_ACCOUNT --json | jq -r '.deployedTo')
 
+echo "Debug: ADDRESS=$ADDRESS"  # Add this line
+
 # Check if deployment was successful
 if [ -z "$ADDRESS" ]; then
     echo "Deployment failed."
@@ -59,6 +61,8 @@ fi
 echo "Contract Deployed: $ADDRESS"
 echo "Contract Address: $ADDRESS" >> /data/contract_data.txt
 echo "Private Key: $FIRST_PRIVATE_KEY" >> /data/contract_data.txt
+
+echo "Script completed."
 
 # Keep script running to avoid container exit
 wait

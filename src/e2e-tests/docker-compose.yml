@@ -161,7 +161,6 @@ services:
     ports:
       - "3000:3000"
     depends_on:
-      - anvil-node
       - local_node
       - node_alice
       - node_bob
