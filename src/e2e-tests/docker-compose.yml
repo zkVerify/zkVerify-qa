@@ -25,7 +25,17 @@ services:
     expose:
       - "${NODE_NET_RPC_WS_PORT}"
     healthcheck:
-      test: [CMD, curl, -f, "http://localhost:9944"]
+      test:
+        [
+          CMD,
+          curl,
+          -H,
+          "Content-Type: application/json",
+          "-d",
+          '{"jsonrpc":"2.0","method":"system_health","params":[],"id":1}',
+          -f,
+          "http://localhost:9944",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
