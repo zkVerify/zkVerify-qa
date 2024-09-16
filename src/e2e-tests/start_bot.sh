@@ -42,6 +42,9 @@ while true; do
         echo "Timeout reached: contract data file is not ready."
         exit 1
     fi
+    echo "Debug: file /data/contract_data.txt is not ready yet"
+    echo "ls -l /data"
+    ls -l /data
     echo "Waiting for contract data file to be ready..."
     sleep 2
     wait_time=$((wait_time + 2))
