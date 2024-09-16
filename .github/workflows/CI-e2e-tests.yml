@@ -114,7 +114,7 @@ jobs:
         working-directory: src/e2e-tests
 
       - name: Wait 30 seconds for everything to initialize
-        run: sleep 30
+        run: sleep 60
         working-directory: src/e2e-tests
 
       - name: Check running services
@@ -124,7 +124,7 @@ jobs:
 
       - name: Check attestation bot logs
         run: |
-          docker compose logs attestation-bot
+          docker logs e2e-tests-attestation-bot-1
         working-directory: src/e2e-tests
 
       - name: Run E2E tests
