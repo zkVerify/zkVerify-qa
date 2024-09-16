@@ -61,8 +61,6 @@ services:
     depends_on:
       subquery-postgres:
         condition: service_healthy
-      anvil-node:
-        condition: service_started
     restart: unless-stopped
     environment:
       - "DB_USER=${SUBQUERY_DB_USER}"
@@ -87,6 +85,11 @@ services:
       - --unfinalized-blocks=false
       - --skip-transactions
       - --debug
+    healthcheck:
+      test: [CMD, curl, -f, "http://subquery-node:${SUBQUERY_NODE_PORT}/ready"]
+      interval: 3s
+      timeout: 5s
+      retries: 10
 
   graphql-engine:
     image: subquerynetwork/subql-query:${SUBQL_QUERY_VERSION}

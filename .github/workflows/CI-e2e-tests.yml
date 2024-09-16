@@ -69,9 +69,6 @@ jobs:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
-      - name: Pull Docker image for zkVerify
-        run: docker pull horizenlabs/zkverify:${{ github.event.inputs.zkverify_tag || inputs.zkverify_tag }}
-
       - name: Run setup script (git clone latest zkVerify & attestation-bot repos)
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
