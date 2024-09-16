@@ -24,12 +24,6 @@ services:
       - "${NODE_NET_P2P_PORT}:${NODE_NET_P2P_PORT}"
     expose:
       - "${NODE_NET_RPC_WS_PORT}"
-    healthcheck:
-      test: ["CMD-SHELL", "sleep 120 && exit 0"]
-      interval: 130s
-      timeout: 140s
-      retries: 1
-      start_period: 0s
 
   node_alice:
     image: horizenlabs/zkverify:${ZKVERIFY_IMAGE_TAG}
@@ -54,7 +48,7 @@ services:
     expose:
       - ${SUBQUERY_DB_PORT}
     healthcheck:
-      test: [ CMD-SHELL, pg_isready -U postgres ]
+      test: [CMD-SHELL, pg_isready -U postgres]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -63,13 +57,12 @@ services:
     image: horizenlabs/zkverify-subquery-node:${SUBQUERY_NODE_VERSION}
     container_name: subquery-node
     hostname: subquery-node
+    platform: linux/amd64
     depends_on:
       subquery-postgres:
         condition: service_healthy
       anvil-node:
         condition: service_started
-      local_node:
-        condition: service_healthy
     restart: unless-stopped
     environment:
       - "DB_USER=${SUBQUERY_DB_USER}"
@@ -83,7 +76,7 @@ services:
       - ${SUBQUERY_NODE_PORT}
     volumes:
       - ./configs/attestation-bot/entrypoint.sh:/usr/local/bin/entrypoint.sh:ro
-    entrypoint: [ /usr/local/bin/entrypoint.sh ]
+    entrypoint: [/usr/local/bin/entrypoint.sh]
     command:
       - -f=/app
       - --network-endpoint=ws://local_node:9944
@@ -94,17 +87,6 @@ services:
       - --unfinalized-blocks=false
       - --skip-transactions
       - --debug
-    healthcheck:
-      test:
-        [
-          CMD,
-          curl,
-          -f,
-          "http://subquery-node:${SUBQUERY_NODE_PORT}/ready"
-        ]
-      interval: 5s
-      timeout: 10s
-      retries: 15
 
   graphql-engine:
     image: subquerynetwork/subql-query:${SUBQL_QUERY_VERSION}
@@ -114,7 +96,7 @@ services:
       subquery-postgres:
         condition: service_healthy
       subquery-node:
-        condition: service_healthy
+        condition: service_started
     restart: always
     environment:
       - "DB_USER=${SUBQUERY_DB_USER}"
@@ -137,7 +119,7 @@ services:
           -X,
           POST,
           --data-raw,
-          "{\"query\":\"{_metadata {chain lastProcessedHeight lastProcessedTimestamp}}\""
+          '{"query":"{_metadata {chain lastProcessedHeight lastProcessedTimestamp}}"',
         ]
       interval: 3s
       timeout: 5s
@@ -150,6 +132,8 @@ services:
     volumes:
       - contract-data:/data
       - ./start_bot.sh:/app/start_bot.sh
+    env_file:
+      - .env
     ports:
       - "3000:3000"
     depends_on:
