@@ -5,7 +5,8 @@
   "author": "Horizen Labs <info@horizenlabs.io>",
   "license": "ISC",
   "scripts": {
-    "test:e2e": "cp .env.local.e2e .env && jest --config=jest.config.e2e.js --forceExit --verbose",
+    "test:e2e": "cp .env.e2e .env && jest --config=jest.config.e2e.js --forceExit --verbose",
+    "test:e2e:local": "cp .env.local.e2e .env && jest --config=jest.config.e2e.js --forceExit --verbose",
     "test:rpc:local": "cp .env.local.rpc .env && jest --config=jest.config.local.rpc.js --verbose",
     "test:rpc:testnet": "cp .env.testnet.rpc .env && jest --config=jest.config.testnet.rpc.js --forceExit --verbose",
     "generate:single:proof": "cp .env.generator .env && npx ts-node src/send-proof/index.ts",
