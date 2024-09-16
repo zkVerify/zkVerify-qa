@@ -15,14 +15,14 @@ if [ -f /data/contract_data.txt ]; then
 fi
 
 echo "Checking if Substrate node is up..."
-while ! curl -m 10 -s http://local_node:9944/ > /dev/null; do
+while ! curl -m 10 -s http://localhost:9944/ > /dev/null; do
     echo "Waiting for Substrate node to be ready..."
     sleep 5
 done
 echo "Substrate node is ready."
 
 echo "Checking if Anvil node is up..."
-while ! curl -m 10 -s http://anvil-node:8545/ > /dev/null; do
+while ! curl -m 10 -s http://localhost:8545/ > /dev/null; do
     echo "Waiting for Anvil node to be ready..."
     sleep 5
 done
@@ -59,7 +59,7 @@ fi
 
 # Set environment variables required by the bot
 export ZKV_ATTEST_BOT_GRAPHQL_SERVICE_URL="${ZKV_ATTEST_BOT_GRAPHQL_SERVICE_URL}"
-export ZKV_ATTEST_BOT_ETH_JSON_RPC_PROVIDER_URL="http://anvil-node:8545"
+export ZKV_ATTEST_BOT_ETH_JSON_RPC_PROVIDER_URL="http://localhost:8545"
 export ZKV_ATTEST_BOT_OPERATOR_SECRET_KEY="${PRIVATE_KEY}"
 export ZKV_ATTEST_BOT_CONTRACT_ADDRESS="${CONTRACT_ADDRESS}"
 
