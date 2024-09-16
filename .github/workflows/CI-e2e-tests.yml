@@ -113,6 +113,10 @@ jobs:
           done
         working-directory: src/e2e-tests
 
+      - name: Wait 30 seconds for everything to initialize
+        run: sleep 30
+        working-directory: src/e2e-tests
+
       - name: Check running services
         run: |
           docker compose ps

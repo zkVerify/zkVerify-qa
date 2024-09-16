@@ -11,7 +11,7 @@ fi
 
 if [ -f /data/contract_data.txt ]; then
     echo "Clearing old contract data..."
-    # rm /data/contract_data.txt
+    true > /data/contract_data.txt
 fi
 
 echo "Checking if Substrate node is up..."
