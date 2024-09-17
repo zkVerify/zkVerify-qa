@@ -70,8 +70,6 @@ describe('Proof Submission and Event Handling', () => {
 
             if (!success) {
                 console.error(`Attestation ${expectedId} not found on Ethereum contract after timeout`);
-                // console.error(`Last known Ethereum block: ${await getLatestBlockNumber()}`);
-                // console.error(`zkVerify node latest block: ${await getZkVerifyLatestBlock()}`);
             }
             expect(success).toBe(true);
         },
