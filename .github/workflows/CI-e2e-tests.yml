@@ -120,25 +120,6 @@ jobs:
           done
         working-directory: src/e2e-tests
 
-      - name: Wait 60 seconds for everything to initialize
-        run: sleep 60
-        working-directory: src/e2e-tests
-
-      - name: Check running services
-        run: |
-          docker compose ps
-        working-directory: src/e2e-tests
-
-      - name: Check anvil logs
-        run: |
-          docker logs subquery-node
-        working-directory: src/e2e-tests
-
-      - name: Check attestation bot logs
-        run: |
-          docker logs e2e-tests-attestation-bot-1
-        working-directory: src/e2e-tests
-
       - name: Run E2E tests
         id: run_tests
         run: |
@@ -209,6 +190,7 @@ jobs:
       #     SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
 
       - name: Cleanup Docker resources
+        if: always()
         run: |
           echo "Cleaning up Docker resources..."
           docker compose -f docker-compose.yml down -v
