@@ -34,7 +34,7 @@ services:
           "-d",
           '{"jsonrpc":"2.0","method":"system_health","params":[],"id":1}',
           -f,
-          "http://localhost:9944",
+          "http://local_node:9944",
         ]
       interval: 30s
       timeout: 10s
