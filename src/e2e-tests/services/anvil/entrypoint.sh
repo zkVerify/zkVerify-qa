@@ -6,7 +6,7 @@ anvil --host 0.0.0.0 --block-time 5 --slots-in-an-epoch 1 > /data/anvil_output.t
 
 # Wait for Anvil to be ready
 echo "Waiting for Anvil to be ready..."
-while ! curl -s http://anvil-node:8545 > /dev/null; do
+while ! curl -s http://localhost:8545 > /dev/null; do
     sleep 1
 done
 
@@ -48,7 +48,7 @@ forge build
 
 # Compile and deploy contract
 echo "Compiling and deploying contract..."
-ADDRESS=$(forge create ZkVerifyAttestation --rpc-url http://anvil-node:8545 --private-key $FIRST_PRIVATE_KEY --constructor-args $FIRST_ACCOUNT --json | jq -r '.deployedTo')
+ADDRESS=$(forge create ZkVerifyAttestation --rpc-url http://localhost:8545 --private-key $FIRST_PRIVATE_KEY --constructor-args $FIRST_ACCOUNT --json | jq -r '.deployedTo')
 
 echo "Debug: ADDRESS=$ADDRESS"  # Add this line
 
