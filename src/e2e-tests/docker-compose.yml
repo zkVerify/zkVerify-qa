@@ -153,6 +153,9 @@ services:
     volumes:
       - contract-data:/data
       - ./start_bot.sh:/app/start_bot.sh
+    environment:
+      - ZKV_ATTEST_BOT_GRAPHQL_SERVICE_URL=http://graphql-engine:${GRAPHQL_QUERY_PORT}
+      - ZKV_ATTEST_BOT_ETH_JSON_RPC_PROVIDER_URL=http://anvil-node:8545
     env_file:
       - .env
     ports:
