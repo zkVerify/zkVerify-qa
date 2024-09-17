@@ -48,7 +48,7 @@ const handleInBlock = (
     expectsError: boolean
 ) => {
     const validityPrefix = expectsError ? "Invalid" : "Valid";
-    console.log(`${validityPrefix} ${proofType} Transaction included in block ${blockHash} (elapsed time: ${(Date.now() - startTime) / 1000} seconds)`);
+    console.log(`${validityPrefix} ${proofType} Transaction included in block ${blockHash} (elapsed time: ${Math.floor((Date.now() - startTime) / 1000)} seconds)`);
     handleEvents(events, (data) => {
         if (data && data.length > 1) {
             setAttestationId(data[1].toString());
@@ -78,7 +78,7 @@ const handleFinalized = async (
     skipAttestation: boolean
 ): Promise<string> => {
     const validityPrefix = expectsError ? "Invalid" : "Valid";
-    console.log(`${validityPrefix} ${proofType} Transaction finalized (elapsed time: ${(Date.now() - startTime) / 1000} seconds)`);
+    console.log(`${validityPrefix} ${proofType} Transaction finalized (elapsed time: ${Math.floor((Date.now() - startTime) / 1000)} seconds)`);
 
     if (dispatchError) {
         const decodedError = decodeDispatchError(api, dispatchError);
@@ -171,8 +171,8 @@ export const handleTransaction = async (
                     // Set interval to log waiting status
                     timerRefs.interval = setInterval(() => {
                         if (!isFinalized) {
-                            let elapsed = (Date.now() - startTime) / 1000;
-                            console.log(`Waiting for ${validityPrefix} ${proofType} transaction to finalize... (elapsed time: ${elapsed} seconds)`);
+                            let elapsedTime = Math.floor((Date.now() - startTime) / 1000);
+                            console.log(`Waiting for ${validityPrefix} ${proofType} transaction to finalize... (elapsed time: ${elapsedTime} seconds)`);
                         }
                     }, 5000) as NodeJS.Timeout;
                 }

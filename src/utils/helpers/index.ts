@@ -62,7 +62,7 @@ export async function waitForNewAttestation(api: ApiPromise, timeoutDuration: nu
         }, timeoutDuration);
 
         const interval = setInterval(() => {
-            console.log(`Waiting for NewAttestation event... (elapsed time: ${(Date.now() - startTime) / 1000} seconds)`);
+            console.log(`Waiting for NewAttestation event... (elapsed time: ${Math.floor((Date.now() - startTime) / 1000)} seconds)`);
         }, 15000);
 
         try {

@@ -37,7 +37,7 @@ const main = async (): Promise<void> => {
         console.log(`Sending ${proofType} proof to zkVerify for verification...`)
         const result = await handleTransaction(api, transaction, account, proofType, startTime, false, timerRefs, undefined, skipAttestation);
 
-        const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(2);
+        const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
         console.log(`Sent 1 proof, elapsed time: ${elapsedTime}s, result: ${result.result}, attestationId: ${result.attestationId}`);
     } catch (error) {
         console.error(`Failed to send proof: ${error}`);

@@ -44,8 +44,8 @@ export async function pollLatestAttestationId(expectedId: number, timeout: numbe
                 return true;
             }
 
-            const elapsed = (timeout - (endTime - Date.now())) / 1000;
-            console.log(`Polling Ethereum zkVerify contract for attestation ID ${expectedId}... elapsed time: ${elapsed.toFixed(2)} seconds`);
+            const elapsedTime = Math.floor((timeout - (endTime - Date.now())) / 1000);
+            console.log(`Polling Ethereum zkVerify contract for attestation ID ${expectedId}... elapsed time: ${elapsedTime} seconds`);
 
             const blockNumber = await web3.eth.getBlockNumber();
             console.log(`Current Ethereum block number: ${blockNumber}`);
