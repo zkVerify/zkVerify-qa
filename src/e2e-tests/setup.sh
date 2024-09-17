@@ -130,7 +130,7 @@ if [ "$use_prebuilt_image" = false ]; then
             docker rmi -f "${image_name}:${docker_image_tag}"
         fi
 
-        if [ -f "docker/dockerfiles/zkv-node.Dockerfile" ]; then ## HERE update to use `docker build -f docker/dockerfiles/zkv-node.Dockerfile -t horizenlabs/zkverify:latest .`
+        if [ -f "docker/dockerfiles/zkv-node.Dockerfile" ]; then
             echo "Building zkVerify image..."
             docker build -f docker/dockerfiles/zkv-node.Dockerfile -t horizenlabs/zkverify:latest .
             echo "zkVerify is set up and ready."

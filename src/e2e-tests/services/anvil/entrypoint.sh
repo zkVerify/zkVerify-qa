@@ -50,8 +50,6 @@ forge build
 echo "Compiling and deploying contract..."
 ADDRESS=$(forge create ZkVerifyAttestation --rpc-url http://localhost:8545 --private-key $FIRST_PRIVATE_KEY --constructor-args $FIRST_ACCOUNT --json | jq -r '.deployedTo')
 
-echo "Debug: ADDRESS=$ADDRESS"  # Add this line
-
 # Check if deployment was successful
 if [ -z "$ADDRESS" ]; then
     echo "Deployment failed."
