@@ -143,11 +143,11 @@ Act allows you to test GitHub workflow changes locally.
 Run the following command from the parent directory to test your GitHub Actions workflow locally:
 
 ```sh
-act workflow_dispatch -P ubuntu-latest=ghcr.io/catthehacker/ubuntu:act-latest --network e2e-tests_default
+act workflow_dispatch -P ubuntu-latest=ghcr.io/catthehacker/ubuntu:act-latest --network host
 ```
 
 > NOTE: To avoid rebuilding the images in each run, we can temporarily comment the cleanup step in [.github/workflows/CI-e2e-tests.yml](.github/workflows/CI-e2e-tests.yml)
-> NOTE: The network flag is used to connect the act container to the services network created by the e2e tests docker-compose file.
+> NOTE: The network flag is used to connect the act container to the host network so the services can communicate with each other.
 
 This setup allows you to test and debug your GitHub Actions workflows locally before pushing changes to the repository.
 
@@ -165,7 +165,7 @@ To catch any error before running the tests, we can perform some checks:
     2024-09-17 14:00:13 2024-09-17 12:00:13 🏷  Node name: RpcNode
    ```
 
-   If not, see Troubleshooting section in [./src/e2e-tests/README.md](./src/e2e-tests/README.md)
+   If not, see Troubleshooting section in [./src/e2e-tests/README.md](./src/e2e-tests/README.md#L106)
 
 2. Check if the `local_node` service is listening on the correct port (default is 9944)
 
@@ -178,8 +178,9 @@ To catch any error before running the tests, we can perform some checks:
 
 3. Check if the `subquery-node` is running without errors
 
-   - If is returning the error `Value of ChainId does not match across all endpoints` we will need to update the `SUBQUERY_NODE_CHAIN_ID` from the [.src/e2e-tests/.env](.src/e2e-tests/.env) to the one that is expecting
+   - If is returning the error `Value of ChainId does not match across all endpoints` we will need to update the `SUBQUERY_NODE_CHAIN_ID` from the [src/e2e-tests/.env](./src/e2e-tests/.env#L19) to the one that is expecting
+   - If is returning the error `ERROR Having a problem when getting finalized block Error: Latest Finalized Height is not available` and stopping the workflow, that's because the `local_node` is not finished syncing, you can comment the `docker compose down -v` from [.github/workflows/CI-e2e-tests.yml](.github/workflows/CI-e2e-tests.yml#L95) and execute the workflow again.
 
 4. Check if the `attestation-bot` is running and dosen't have any errors
-   - If returning `Cannot read properties of undefined (reading 'query') {}` could be a problem with the initialization order of the services. Check the list of dependes_on in the docker-compose file and make sure they are started in the correct order.
+   - If returning `Cannot read properties of undefined (reading 'query') {}` could be a problem with the initialization order of the services. Check the list of `depends_on` in the docker-compose file and make sure they are started in the correct order.
    - If the service get stuck in the `Waiting for contract data file to be ready...` check the `anvil-node` logs and double check the volumes, sometimes we need to clean up the volumes.
