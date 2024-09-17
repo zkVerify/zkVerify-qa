@@ -23,7 +23,15 @@ jobs:
         id: run_tests
         run: |
           mkdir -p src/rpc-tests/reports
-          docker run --rm -e SEED_PHRASE=${{ secrets.QA_SEED_PHRASE }} -v ${{ github.workspace }}/src/rpc-tests/reports:/usr/src/app/reports rpc-tests:latest 2>&1 | tee src/rpc-tests/reports/test_output.txt
+          docker run --rm \
+            -e SEED_PHRASE_1=${{ secrets.QA_SEED_PHRASE_1 }} \
+            -e SEED_PHRASE_2=${{ secrets.QA_SEED_PHRASE_2 }} \
+            -e SEED_PHRASE_3=${{ secrets.QA_SEED_PHRASE_3 }} \
+            -e SEED_PHRASE_4=${{ secrets.QA_SEED_PHRASE_4 }} \
+            -e SEED_PHRASE_5=${{ secrets.QA_SEED_PHRASE_5 }} \
+            -e SEED_PHRASE_6=${{ secrets.QA_SEED_PHRASE_6 }} \
+            -v ${{ github.workspace }}/src/rpc-tests/reports:/usr/src/app/reports \
+            rpc-tests:latest 2>&1 | tee src/rpc-tests/reports/test_output.txt
         working-directory: .
 
       - name: Parse Test Results

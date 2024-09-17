@@ -1,49 +1,67 @@
-import { initializeApi, submitProof, validateEnvVariables } from '../utils/helpers';
+import { validateEnvVariables } from '../utils/helpers';
 import { generateAndNativelyVerifyProof } from '../proof-generator/common/generate-proof';
-import { handleTransaction } from '../utils/transactions';
-import { proofTypeToPallet } from '../config';
-import { validateProofTypes } from '../utils/helpers';
+import { selectVerifyMethod } from '../utils/helpers';
+import { zkVerifySession, ZkVerifyEvents } from 'zkverifyjs';
 
 const main = async (): Promise<void> => {
     const proofType = process.argv[2];
-    const skipAttestationArg = process.argv[3];
-    const skipAttestation = skipAttestationArg === 'true';
+    const waitForPublishedAttestationArg = process.argv[3];
+    const waitForPublishedAttestation = waitForPublishedAttestationArg === 'true';
+    let session = undefined;
 
     if (!proofType) {
-        throw new Error('Proof type argument is required. Usage: npm run generate:single:proof <proof-type> <skipAttestation>');
+        throw new Error('Proof type argument is required. Usage: npm run generate:single:proof <proof-type> <waitForPublishedAttestation>');
     }
 
-    validateEnvVariables(['WEBSOCKET', 'SEED_PHRASE']);
-    validateProofTypes([proofType]);
-
-    const { api, provider, account, nonce } = await initializeApi();
+    validateEnvVariables(['WEBSOCKET', 'SEED_PHRASE_1']);
 
     try {
         console.log(`Generating the proof for ${proofType}`);
         const { proof, publicSignals, vk } = await generateAndNativelyVerifyProof(proofType);
+        console.log(proof);
+        console.log(publicSignals);
+        console.log(vk);
         console.log(`${proofType} Proof generated and natively verified.`);
 
-        const proofParams = [
-            { 'Vk': vk },
-            proof,
-            publicSignals
-        ];
+        console.log(`Connecting to zkVerify network for verification...`);
 
-        const transaction = submitProof(api, proofTypeToPallet[proofType], proofParams);
+        session = await zkVerifySession.start().Custom(process.env.WEBSOCKET).withAccount(process.env.SEED_PHRASE_1!);
+        const verifyMethod = selectVerifyMethod(session, proofType);
 
-        const startTime = Date.now();
-        const timerRefs = { interval: null as NodeJS.Timeout | null, timeout: null as NodeJS.Timeout | null };
+        let verificationCall = verifyMethod;
+        if (waitForPublishedAttestation) {
+            verificationCall = verifyMethod.waitForPublishedAttestation();
+        }
 
-        console.log(`Sending ${proofType} proof to zkVerify for verification...`)
-        const result = await handleTransaction(api, transaction, account, proofType, startTime, false, timerRefs, undefined, skipAttestation);
+        console.log(`Sending ${proofType} proof to zkVerify for verification...`);
 
-        const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(2);
-        console.log(`Sent 1 proof, elapsed time: ${elapsedTime}s, result: ${result.result}, attestationId: ${result.attestationId}`);
+        const { events, transactionResult } = await verificationCall.execute(proof, publicSignals, vk);
+
+        let verifyStartTime = Date.now();
+        events.on(ZkVerifyEvents.Broadcast, () => {
+            console.log(`Proof broadcast for verification at ${verifyStartTime}`);
+        });
+
+        events.on(ZkVerifyEvents.ErrorEvent, (eventData: any) => {
+            console.error(`Error in proof verification: ${JSON.stringify(eventData)}`);
+        });
+
+        events.on(ZkVerifyEvents.IncludedInBlock, (eventData: any) => {
+            console.log(`Proof included in block: ${eventData.blockHash}`);
+        });
+
+        events.on(ZkVerifyEvents.Finalized, () => {
+            console.log(`Proof verified and finalized.`);
+        });
+
+        const transactionDetails = await transactionResult;
+        console.log(`Transaction details: ${JSON.stringify(transactionDetails)}`);
     } catch (error) {
         console.error(`Failed to send proof: ${error}`);
     } finally {
-        if (api) await api.disconnect();
-        if (provider) await provider.disconnect();
+        if(session) {
+            session.close()
+        }
         process.exit(0);
     }
 };

@@ -9,12 +9,12 @@ The list of supported proofs can be found in `src/config.ts`, add new proof type
 Send a newly generated proof of a specific type by running:
 
 ```shell
-npx ts-node src/send-proof/index.ts <proofType> <skipWaitingForAttestationEventBoolean>
+npx ts-node src/send-proof/index.ts <proofType> <waitForPublishedAttestation>
 ```
 
 Example:
 ```shell
-npx ts-node src/send-proof/index.ts groth16 true
+npx ts-node src/send-proof/index.ts groth16 false
 ```
 
 ### rpc-tests

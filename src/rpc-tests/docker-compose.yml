@@ -8,6 +8,11 @@ services:
     environment:
       - RPC_URL=${RPC_URL}
       - WEBSOCKET=${WEBSOCKET}
-      - SEED_PHRASE=${SEED_PHRASE}
+      - SEED_PHRASE_1=${SEED_PHRASE_1}
+      - SEED_PHRASE_2=${SEED_PHRASE_2}
+      - SEED_PHRASE_3=${SEED_PHRASE_3}
+      - SEED_PHRASE_4=${SEED_PHRASE_4}
+      - SEED_PHRASE_5=${SEED_PHRASE_5}
+      - SEED_PHRASE_6=${SEED_PHRASE_6}
     command: >
       sh -c "if [ \"$TEST_ENV\" = 'local' ]; then npm run test:rpc:local; else npm run test:rpc:testnet; fi"

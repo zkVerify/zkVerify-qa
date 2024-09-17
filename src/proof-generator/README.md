@@ -69,14 +69,14 @@ The script uses a `config.json` file to configure proof generation and submissio
       "rate": 1,
       "interval": 5,
       "duration": 60,
-      "skipAttestation": true
+      "waitForPublishedAttestation": false
     },
     {
       "type": "fflonk",
       "rate": 1,
       "interval": 10,
       "duration": 120,
-      "skipAttestation": true
+      "waitForPublishedAttestation": false
     }
   ]
 }
@@ -95,13 +95,13 @@ npx ts-node src/proof-generator/index.ts
 
 ### Generating and sending a single unique proof
 
-1. Via package.json (requires `proofType` and `skipWaitingForAttestationEventBoolean` args)
+1. Via package.json (requires `proofType` and `waitForPublishedAttestation` args)
 ```shell
-npm run generate:single:proof -- fflonk true
+npm run generate:single:proof -- fflonk false
 ```
 2. Run the file directly with ts-node
 ```shell
-npx ts-node src/send-proof/index.ts <proofType> <skipWaitingForAttestationEventBoolean>
+npx ts-node src/send-proof/index.ts <proofType> <waitForPublishedAttestation>
 ```
 
 ## Docker
@@ -120,5 +120,5 @@ docker run -e INTERVAL=10 -e DURATION=120 proof-generator
 - Ensure your .env file is set up with the required environment variables:
 
 *WEBSOCKET*: The WebSocket endpoint of your Substrate node.
-*SEED_PHRASE*: The seed phrase of the account used for submitting transactions.
+*SEED_PHRASE_1*: The seed phrase of the account used for submitting transactions.
 

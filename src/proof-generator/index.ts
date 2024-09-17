@@ -1,6 +1,5 @@
-import { initializeApi, submitProof, validateEnvVariables, validateProofTypes } from '../utils/helpers';
+import { validateEnvVariables } from '../utils/helpers';
 import { generateAndNativelyVerifyProof } from './common/generate-proof';
-import { handleTransaction } from '../utils/transactions';
 import { ProofConfig } from './types';
 import { Mutex } from 'async-mutex';
 import { proofTypeToPallet } from '../config';
@@ -11,7 +10,7 @@ import * as fs from 'fs';
 import * as readline from 'readline';
 import path from "path";
 const clc = require('cli-color');
-
+//TODO: This needs additional work to use zkverifyjs!!
 /**
  * Send a proof to the blockchain.
  *
@@ -21,7 +20,7 @@ const clc = require('cli-color');
  * @param {(valid: boolean) => any[]} getParams - Function to get the parameters for the transaction.
  * @param {Mutex} nonceMutex - Mutex to handle nonce updates.
  * @param {{ value: number }} nonce - The current nonce value.
- * @param {boolean} skipAttestation - Flag to skip waiting for attestation.
+ * @param {boolean} waitForPublishedAttestation - Flag to skip waiting for attestation.
  * @param {Mutex} countMutex - Mutex to handle proof count updates.
  * @param {number} proofCount - Reference to the proof count for logging
  * @param {number} completedCount - Reference to the completed proof count for logging
@@ -34,7 +33,7 @@ const sendProof = async (
     getParams: (valid: boolean) => any[],
     nonceMutex: Mutex,
     nonce: { value: number },
-    skipAttestation: boolean,
+    waitForPublishedAttestation: boolean,
     countMutex: Mutex,
     proofCount: { [key: string]: number },
     completedCount: { [key: string]: number }
@@ -61,7 +60,7 @@ const sendProof = async (
     });
 
     try {
-        const result = await handleTransaction(api, transaction, account, proofType, startTime, false, timerRefs, currentNonce, skipAttestation);
+        const result = await handleTransaction(api, transaction, account, proofType, startTime, false, timerRefs, currentNonce, waitForPublishedAttestation);
         const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(2);
 
         await countMutex.runExclusive(() => {
@@ -99,7 +98,7 @@ const promptConfirmation = (message: string): Promise<boolean> => {
  * @returns {Promise<void>} A promise that resolves when the main function completes.
  */
 const main = async (): Promise<void> => {
-    validateEnvVariables(['WEBSOCKET', 'SEED_PHRASE']);
+    validateEnvVariables(['WEBSOCKET', 'SEED_PHRASE_1']);
     console.log("Environment variables validated.");
 
     const configPath = path.join(__dirname, 'config.json');
@@ -115,7 +114,7 @@ const main = async (): Promise<void> => {
         console.log(`  Rate              : ${proof.rate} proofs per interval`);
         console.log(`  Interval          : ${proof.interval} seconds`);
         console.log(`  Duration          : ${proof.duration} seconds`);
-        console.log(`  Skip Attestation  : ${proof.skipAttestation}`);
+        console.log(`  Wait For Published Attestation  : ${proof.waitForPublishedAttestation}`);
         console.log(`--------------------------`);
     });
 
@@ -136,7 +135,7 @@ const main = async (): Promise<void> => {
         const completedCount: { [key: string]: number } = {};
 
         const proofPromises = proofsConfig.map(proofConfig => {
-            const { type, rate, interval, duration, skipAttestation } = proofConfig;
+            const { type, rate, interval, duration, waitForPublishedAttestation } = proofConfig;
             proofCount[type] = 0;
             completedCount[type] = 0;
             const endTime = Date.now() + duration * 1000;
@@ -150,7 +149,7 @@ const main = async (): Promise<void> => {
                             proof,
                             publicSignals
                         ];
-                        await sendProof(api, account, type, () => proofParams, nonceMutex, nonce, skipAttestation, countMutex, proofCount, completedCount);
+                        await sendProof(api, account, type, () => proofParams, nonceMutex, nonce, waitForPublishedAttestation, countMutex, proofCount, completedCount);
                     } catch (error) {
                         console.error(clc.red(`Failed to send ${type} proof: ${error}`));
                     }

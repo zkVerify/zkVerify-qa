@@ -1,12 +1,9 @@
 import 'dotenv/config';
-import { ApiPromise, WsProvider } from '@polkadot/api';
-import { Keyring } from '@polkadot/keyring';
-import { KeyringPair } from '@polkadot/keyring/types';
-import { SubmittableExtrinsic } from '@polkadot/api/types';
-import { proofs } from '../proofs';
-import { createApi, waitForNodeToSync } from '../helpers';
 import { Mutex } from 'async-mutex';
 import BN from 'bn.js';
+import {zkVerifySession, Groth16CurveType, ProofType} from 'zkverifyjs';
+import { loadProofData } from '../../tests/common/utils';
+import { SupportedProofType } from '../../config';
 
 /**
  * Validates required environment variables.
@@ -21,50 +18,43 @@ const validateEnvVariables = (variables: string[]): void => {
 };
 
 /**
- * Submits a proof to the blockchain.
- * @param api - The ApiPromise instance.
- * @param pallet - The pallet to which the proof is submitted.
- * @param params - The parameters for the proof submission.
- * @returns The transaction object.
- */
-const submitProof = (api: ApiPromise, pallet: string, params: any[]): SubmittableExtrinsic<'promise'> => {
-    return api.tx[pallet].submitProof(...params);
-};
-
-/**
- * Sends a proof to the blockchain.
- * @param api - The ApiPromise instance.
- * @param account - The account used to sign the transaction.
- * @param proofType - The type of the proof.
- * @param pallet - The pallet to which the proof is submitted.
- * @param getParams - Function to get the parameters for the proof submission.
+ * Sends a proof to the blockchain using zkVerifySession.
+ * @param session - The zkVerifySession instance.
+ * @param proofType - The type of the proof (e.g., fflonk, groth16).
+ * @param proof - The proof data.
+ * @param publicSignals - The public signals for the proof.
+ * @param vk - The verification key.
  * @param proofCounter - An object to keep track of the number of proofs sent.
  * @param nonceMutex - A mutex to handle nonce synchronization.
  * @param nonce - An object containing the current nonce value.
  */
 const sendProof = async (
-    api: ApiPromise,
-    account: KeyringPair,
+    session: zkVerifySession,
     proofType: string,
-    pallet: string,
-    getParams: (valid: boolean) => any[],
+    proof: any,
+    publicSignals: any,
+    vk: string,
     proofCounter: { [key: string]: number },
     nonceMutex: Mutex,
     nonce: { value: number }
 ): Promise<void> => {
-    const params = getParams(true);
-    const transaction = submitProof(api, pallet, params);
-    let currentNonce!: number; // Definite assignment assertion
+    let currentNonce!: number;
+
     await nonceMutex.runExclusive(() => {
         currentNonce = nonce.value;
         nonce.value += 1;
     });
+
     try {
-        await transaction.signAndSend(account, { nonce: currentNonce });
+        const { events, transactionResult } = await session
+            [proofType]()
+            .nonce(currentNonce)
+            .execute(proof, publicSignals, vk);
+
+        console.log(`Proof ${proofType} sent with nonce ${currentNonce}`);
         proofCounter[proofType]++;
     } catch (error) {
         console.error(`Error sending ${proofType} proof:`, error);
-        // Handle nonce rollback in case of an error
         await nonceMutex.runExclusive(() => {
             nonce.value -= 1;
         });
@@ -75,27 +65,33 @@ const sendProof = async (
  * Main function to execute the proof submission.
  */
 const main = async (): Promise<void> => {
-    validateEnvVariables(['WEBSOCKET', 'SEED_PHRASE']);
+    validateEnvVariables(['WEBSOCKET', 'SEED_PHRASE_1']);
 
-    const provider = new WsProvider(process.env.WEBSOCKET as string);
-    const api = await createApi(provider);
-    await waitForNodeToSync(api);
+    const session = await zkVerifySession.start().Custom(process.env.WEBSOCKET!).withAccount(process.env.SEED_PHRASE_1!);
 
-    const keyring = new Keyring({ type: 'sr25519' });
-    const account = keyring.addFromUri(process.env.SEED_PHRASE as string);
-
-    // Retrieve and convert the nonce to a number
-    const initialNonce: BN = await api.rpc.system.accountNextIndex(account.address) as unknown as BN;
+    const initialNonce: BN = await session.api.rpc.system.accountNextIndex(session.account?.address!) as unknown as BN;
     const nonce = { value: initialNonce.toNumber() };
 
-    const proofTypes: [string, { pallet: string; getParams: (valid: boolean) => any[] }][] = Object.entries(proofs) as [string, { pallet: string; getParams: (valid: boolean) => any[] }][];
+    const proofTypes: [string, { proof: any, publicSignals: any, vk: string, curve?: Groth16CurveType }][] = [];
+
+    Object.values(SupportedProofType).forEach((proofType) => {
+        if (proofType === SupportedProofType.groth16) {
+            Object.values(Groth16CurveType).forEach((curve: Groth16CurveType) => {
+                const { proof, publicSignals, vk } = loadProofData(proofType as ProofType, curve);
+                proofTypes.push([`${proofType}_${curve}`, { proof, publicSignals, vk, curve }]);
+            });
+        } else {
+            const { proof, publicSignals, vk } = loadProofData(proofType as ProofType);
+            proofTypes.push([proofType, { proof, publicSignals, vk }]);
+        }
+    });
+
     const proofCounter: { [key: string]: number } = {};
 
-    proofTypes.forEach(([proofType, _], index, array) => {
+    proofTypes.forEach(([proofType, _]) => {
         proofCounter[proofType] = 0;
     });
 
-    // Read interval and duration from command-line arguments or use default values
     const interval = parseInt(process.argv[2], 10) || 1500;
     const duration = parseInt(process.argv[3], 10) || 60000;
 
@@ -109,8 +105,8 @@ const main = async (): Promise<void> => {
         if (Date.now() > endTime) {
             clearInterval(intervalId);
         } else {
-            const proofPromises = proofTypes.map(([proofType, { pallet, getParams }]) =>
-                sendProof(api, account, proofType, pallet, getParams, proofCounter, nonceMutex, nonce)
+            const proofPromises = proofTypes.map(([proofType, { proof, publicSignals, vk }]) =>
+                sendProof(session, proofType, proof, publicSignals, vk, proofCounter, nonceMutex, nonce)
             );
             await Promise.all(proofPromises);
             totalProofsSent += proofTypes.length;
@@ -132,8 +128,9 @@ const main = async (): Promise<void> => {
         console.log(`${proofType}: ${count}`);
     }
 
-    if (api) await api.disconnect();
-    if (provider) await provider.disconnect();
+    if (session) {
+        await session.close();
+    }
     process.exit(0);
 };
 

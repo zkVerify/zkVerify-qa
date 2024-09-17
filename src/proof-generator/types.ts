@@ -31,5 +31,5 @@ export interface ProofConfig {
     rate: number;
     interval: number;
     duration: number;
-    skipAttestation: boolean;
+    waitForPublishedAttestation: boolean;
 }
