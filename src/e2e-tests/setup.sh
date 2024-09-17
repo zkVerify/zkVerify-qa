@@ -130,12 +130,12 @@ if [ "$use_prebuilt_image" = false ]; then
             docker rmi -f "${image_name}:${docker_image_tag}"
         fi
 
-        if [ -f "docker/scripts/bootstrap.sh" ]; then
-            chmod +x docker/scripts/bootstrap.sh
-            ./docker/scripts/bootstrap.sh
+        if [ -f "docker/dockerfiles/zkv-node.Dockerfile" ]; then ## HERE update to use `docker build -f docker/dockerfiles/zkv-node.Dockerfile -t horizenlabs/zkverify:latest .`
+            echo "Building zkVerify image..."
+            docker build -f docker/dockerfiles/zkv-node.Dockerfile -t horizenlabs/zkverify:latest .
             echo "zkVerify is set up and ready."
         else
-            echo "Bootstrap script not found in 'docker/scripts/', check the path and filename."
+            echo "zkv-node.Dockerfile not found in 'docker/dockerfiles/', check the path and filename."
             exit 1
         fi
     fi
