@@ -1,96 +1,79 @@
-# Project Setup Guide
+# E2E Tests for zkVerify Project
 
-## Pre-requisites
+This directory contains end-to-end tests for the zkVerify project, including setup scripts and Docker configurations.
 
-1. Install necessary Node.js dependencies in top level directory:
+## Prerequisites
 
-    ```bash
-    npm install
-    ```
+- Node.js (latest LTS version recommended)
+- Docker and Docker Compose
+- Git
+
+## Setup
+
+Install necessary Node.js dependencies in the top-level directory:
+
+```bash
+npm install
+```
 
 ## Running the setup script
 
-The `setup.sh` script is used to clone necessary repositories and manage Docker images for local development. You can customize its behavior using the following command-line options:
+The `setup.sh` script clones necessary repositories and manages Docker images for local development.
 
-### Command-Line Options
-
-- `--fetch-latest`: This option updates the local repositories to the latest code from the specified branches. It is useful when you want to ensure your local setup is in sync with the latest commits.
-
-  **Example Usage**:
-  ```bash
-  ./setup.sh --fetch-latest
-  ```
-- `--rebuild`: Forces a rebuild of the Docker image for zkVerify, even if it already exists locally. Use this option when you want to ensure that you are using the latest version of the Docker image or after making changes that require a fresh build.
-
-  **Example Usage**:
-  ```bash
-  ./setup.sh --rebuild
-  ```
-- `--zkverify-branch <branch_name>`: Specifies the branch to use for the zkVerify repository. Defaults to main if not specified.
-
-  **Example Usage**:
-  ```bash
-  ./setup.sh --zkverify-branch develop
-  ```
-- `--nh-attestation-bot-branch <branch_name>`: Specifies the branch to use for the nh-attestation-bot repository. Defaults to main if not specified.
-
-  **Example Usage**:
-  ```bash
-  ./setup.sh --nh-attestation-bot-branch feature-branch
-  ```
-- `--zkv-attestation-contracts-branch <branch_name>`: Specifies the branch to use for the zkv-attestation-contracts repository. Defaults to main if not specified.
-
-  **Example Usage**:
-  ```bash
-  ./setup.sh --zkv-attestation-contracts-branch release
-  ```
-- `--docker-image-tag <tag>`: Specifies the Docker image tag to use for zkVerify. Defaults to latest. Use this option if you want to test against a specific version of the Docker image.
-
-  **Example Usage**:
-  ```bash
-  ./setup.sh --docker-image-tag 0.5.0
-  ``` 
-  
-### Example Combined Usage
-
-To fetch the latest code from all repositories, build the zkVerify Docker image with a specific tag, and use specific branches for each repository, you could use a command like:
+### Usage
 
 ```bash
-./setup.sh --fetch-latest --zkverify-branch develop --nh-attestation-bot-branch feature-branch --zkv-attestation-contracts-branch release --docker-image-tag develop
+./setup.sh [options]
 ```
 
-### Notes: GitHub Actions
+### Options
 
-When this script runs in a GitHub Actions environment, Docker image handling is skipped because the workflow itself manages the Docker image.
+- `--fetch-latest`: Update local repositories to the latest code.
+- `--rebuild`: Force rebuild of the zkVerify Docker image.
+- `--zkverify-branch <branch>`: Specify zkVerify repository branch (default: main).
+- `--nh-attestation-bot-branch <branch>`: Specify nh-attestation-bot repository branch (default: main).
+- `--zkv-attestation-contracts-branch <branch>`: Specify zkv-attestation-contracts repository branch (default: main).
+- `--docker-image-tag <tag>`: Specify zkVerify Docker image tag (default: latest).
 
-## Docker
-
-### Starting the System
-
-To start `Anvil` & `zkVerify` nodes along with the `nh-attestation-bot`, run the following commands:
+### Example
 
 ```bash
-docker-compose down -v
-ZKVERIFY_IMAGE_TAG=<tag_name> docker-compose up --build
-ZKVERIFY_IMAGE_TAG=<tag_name> docker-compose build --no-cache
-ZKVERIFY_IMAGE_TAG=<tag_name> docker-compose up -d
+./setup.sh --fetch-latest --zkverify-branch develop --docker-image-tag 0.5.0
 ```
 
-### Retrieving Contract Deployed to Anvil
+## Docker Setup
 
-```bash
-docker ps -a
-docker logs -f <container_id>
-```
+1. Start the system:
 
-Locate "Deployed Contract" and copy the value.
+   ```bash
+   docker compose down -v
+   ZKVERIFY_IMAGE_TAG=<tag_name> docker compose up --build
+   ```
 
-### Environment Setup
+   This command will start the following services in order:
 
-1. Set the .env `ZKV_CONTRACT` value to the Deployed Contract address obtained from the Anvil node.
-2. Add `ZKVERIFY_IMAGE_TAG` and value to the .env file.
+   - anvil-node (Ethereum node)
+   - local_node, node_alice, node_bob (zkVerify nodes)
+   - subquery-postgres (PostgreSQL database)
+   - subquery-node (SubQuery indexer)
+   - graphql-engine (GraphQL API)
+   - attestation-bot (Attestation service)
+
+2. Retrieve the deployed contract address:
+
+   ```bash
+   docker ps -a
+   docker logs -f <anvil-node-container-id>
+   ```
+
+   Look for "Contract Deployed:" in the logs and copy the address.
+
+3. Update environment
+   Set `ZKV_CONTRACT` in the `.env` file to the deployed contract address.
 
 ## Running Tests
+
+Execute the E2E tests:
 
 ```bash
 npm --prefix ../../ run test:e2e
@@ -98,7 +81,7 @@ npm --prefix ../../ run test:e2e
 
 ### Submit a proof
 
-Uses proof data from `/data` directory
+To submit a proof using data from the `/data` directory:
 
 ```bash
 npx ts-node ../utils/scripts/submit_proof.ts fflonk
@@ -119,3 +102,16 @@ docker run -d \
   -v contract-data:/data \
   anvil-node
 ```
+
+## Troubleshooting
+
+- If the `local_node` service is not initializing, check that we are not using the remote image since that one was build for amd64 architectures. We need to build the image locally to properly run the services locally.
+
+  ```bash
+  ./setup.sh --rebuild
+  ```
+
+## Notes: GitHub Actions
+
+- When running in GitHub Actions, Docker image handling is skipped as the workflow manages it.
+- Ensure all required environment variables are set before running tests or scripts.

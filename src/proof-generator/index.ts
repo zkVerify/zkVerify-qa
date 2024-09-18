@@ -62,7 +62,7 @@ const sendProof = async (
 
     try {
         const result = await handleTransaction(api, transaction, account, proofType, startTime, false, timerRefs, currentNonce, skipAttestation);
-        const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(2);
+        const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
 
         await countMutex.runExclusive(() => {
             completedCount[proofType] += 1;

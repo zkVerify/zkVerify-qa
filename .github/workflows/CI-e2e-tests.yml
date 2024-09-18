@@ -4,40 +4,43 @@ on:
   workflow_dispatch:
     inputs:
       zkverify_tag:
-        description: 'Docker image tag for zkverify'
-        default: 'latest'
+        description: "Docker image tag for zkverify"
+        default: "latest"
       zkverify_branch:
-        description: 'Branch for zkVerify repository'
-        default: 'main'
+        description: "Branch for zkVerify repository"
+        default: "main"
       attestation_bot_branch:
-        description: 'Branch for attestation bot'
-        default: 'main'
+        description: "Branch for attestation bot"
+        default: "main"
       zkv_contracts_branch:
-        description: 'Branch for zkv attestation contracts'
-        default: 'main'
+        description: "Branch for zkv attestation contracts"
+        default: "main"
 
   workflow_call:
     inputs:
       zkverify_tag:
-        description: 'Docker image tag for zkverify'
+        description: "Docker image tag for zkverify"
         required: false
         type: string
-        default: 'latest'
+        default: "latest"
       zkverify_branch:
-        description: 'Branch for zkVerify repository'
+        description: "Branch for zkVerify repository"
         required: false
         type: string
-        default: 'main'
+        default: "main"
       attestation_bot_branch:
-        description: 'Branch for attestation bot'
+        description: "Branch for attestation bot"
         required: false
         type: string
-        default: 'main'
+        default: "main"
       zkv_contracts_branch:
-        description: 'Branch for zkv attestation contracts'
+        description: "Branch for zkv attestation contracts"
         required: false
         type: string
-        default: 'main'
+        default: "main"
+
+env:
+  NODE_VERSION: "20"
 
 jobs:
   e2e-build-and-test:
@@ -46,14 +49,36 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          clean: true
+          fetch-depth: 1
 
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: ${{ env.NODE_VERSION }}
 
-      - name: Pull Docker image for zkVerify
-        run: docker pull horizenlabs/zkverify:${{ github.event.inputs.zkverify_tag || inputs.zkverify_tag }}
+      - name: Cache npm cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-
+
+      - name: Remove existing node_modules
+        run: rm -rf node_modules
+        working-directory: src
+
+      - name: Install npm dependencies
+        run: npm ci
+        working-directory: src
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
       - name: Run setup script (git clone latest zkVerify & attestation-bot repos)
         env:
@@ -65,15 +90,11 @@ jobs:
             --zkv-attestation-contracts-branch ${{ github.event.inputs.zkv_contracts_branch || inputs.zkv_contracts_branch }}
         working-directory: src/e2e-tests
 
-      - name: Install npm dependencies
-        run: npm install
-        working-directory: src
-
       - name: Set up Docker containers
         run: |
-          docker-compose down -v
-          ZKVERIFY_IMAGE_TAG=${{ github.event.inputs.zkverify_tag || inputs.zkverify_tag }} docker-compose build --no-cache
-          ZKVERIFY_IMAGE_TAG=${{ github.event.inputs.zkverify_tag || inputs.zkverify_tag }} docker-compose up -d
+          docker compose down -v
+          ZKVERIFY_IMAGE_TAG=${{ github.event.inputs.zkverify_tag || inputs.zkverify_tag }} docker compose build --no-cache --pull
+          ZKVERIFY_IMAGE_TAG=${{ github.event.inputs.zkverify_tag || inputs.zkverify_tag }} docker compose up -d
         working-directory: src/e2e-tests
 
       - name: Wait for Ethereum contract to be deployed
@@ -81,8 +102,8 @@ jobs:
           MAX_WAIT_TIME=300
           wait_time=0
           while true; do
-            if docker-compose exec -T anvil-node test -f /data/contract_data.txt; then
-              CONTRACT_ADDRESS=$(docker-compose exec -T anvil-node sh -c "sed -n '1p' /data/contract_data.txt | cut -d ' ' -f 3")
+            if docker compose exec -T anvil-node test -f /data/contract_data.txt; then
+              CONTRACT_ADDRESS=$(docker compose exec -T anvil-node sh -c "sed -n '1p' /data/contract_data.txt | cut -d ' ' -f 3")
               if [ ! -z "$CONTRACT_ADDRESS" ]; then
                 echo "Contract data is ready."
                 echo "ZKV_CONTRACT=$CONTRACT_ADDRESS" >> $GITHUB_ENV
@@ -103,13 +124,13 @@ jobs:
         id: run_tests
         run: |
           mkdir -p reports
-          WEBSOCKET=wss://localhost:9944 ZKV_CONTRACT=${{ env.ZKV_CONTRACT }} npm --prefix ../../ run test:e2e 2>&1 | tee reports/test_output.txt
+          npm --prefix ../../ run test:e2e 2>&1 | tee reports/test_output.txt
         working-directory: src/e2e-tests
 
       - name: Parse Test Results
         run: |
           TEST_OUTPUT=$(cat reports/test_output.txt)
-          
+
           PASSED=0
           FAILED=0
           SKIPPED=0
@@ -167,3 +188,21 @@ jobs:
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.QA_SLACK_WEBHOOK_URL }}
           SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+
+      - name: Cleanup Docker resources
+        if: always()
+        run: |
+          echo "Cleaning up Docker resources..."
+          docker compose -f docker-compose.yml down -v
+          docker container prune -f
+          docker network prune -f
+          docker volume prune -f
+          docker image prune -a -f
+          echo "Checking disk space..."
+          df -h
+          echo "Listing remaining Docker resources..."
+          docker ps -a
+          docker network ls
+          docker volume ls
+          docker images
+        working-directory: src/e2e-tests
