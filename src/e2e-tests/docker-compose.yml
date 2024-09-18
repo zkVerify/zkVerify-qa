@@ -54,7 +54,7 @@ services:
       - ./services/zkVerify/docker/resources/deploy:/data/config
 
   subquery-postgres:
-    image: horizenlabs/zkverify-subquery-postgres:1.0.0
+    image: horizenlabs/zkverify-subquery-postgres:${SUBQUERY_POSTGRES_VERSION}
     container_name: subquery-postgres
     hostname: subquery-postgres
     volumes:
@@ -130,7 +130,7 @@ services:
       - ${GRAPHQL_QUERY_PORT}
     command:
       - --name=app
-      - --indexer=http://subquery-node:${SUBQUERY_NODE_PORT}
+      - --indexer=${ZKV_ATTEST_BOT_GRAPHQL_SERVICE_URL}
     healthcheck:
       test:
         [
@@ -154,8 +154,8 @@ services:
       - contract-data:/data
       - ./start_bot.sh:/app/start_bot.sh
     environment:
-      - ZKV_ATTEST_BOT_GRAPHQL_SERVICE_URL=http://graphql-engine:${GRAPHQL_QUERY_PORT}
-      - ZKV_ATTEST_BOT_ETH_JSON_RPC_PROVIDER_URL=http://anvil-node:8545
+      - "ZKV_ATTEST_BOT_GRAPHQL_SERVICE_URL=${ZKV_ATTEST_BOT_GRAPHQL_SERVICE_URL}"
+      - "ZKV_ATTEST_BOT_ETH_JSON_RPC_PROVIDER_URL=${ZKV_ATTEST_BOT_ETH_JSON_RPC_PROVIDER_URL}"
     env_file:
       - .env
     ports:
