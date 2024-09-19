@@ -95,16 +95,16 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           ./setup.sh --fetch-latest \
-            --zkverify-branch ${{ inputs.zkverify_branch }} \
-            --nh-attestation-bot-branch ${{ inputs.attestation_bot_branch }} \
-            --zkv-attestation-contracts-branch ${{ inputs.zkv_contracts_branch }}
+            --zkverify-branch ${{ inputs.zkverify_branch || github.event.inputs.zkverify_branch }} \
+            --nh-attestation-bot-branch ${{ inputs.attestation_bot_branch || github.event.inputs.attestation_bot_branch }} \
+            --zkv-attestation-contracts-branch ${{ inputs.zkv_contracts_branch || github.event.inputs.zkv_contracts_branch }}
         working-directory: src/e2e-tests
 
       - name: Set up Docker containers
         run: |
           docker compose down -v
-          ZKVERIFY_IMAGE_TAG=${{ inputs.zkverify_tag }} docker compose build --no-cache --pull
-          ZKVERIFY_IMAGE_TAG=${{ inputs.zkverify_tag }} docker compose up -d
+          ZKVERIFY_IMAGE_TAG=${{ inputs.zkverify_tag || github.event.inputs.zkverify_tag }} docker compose build --no-cache --pull
+          ZKVERIFY_IMAGE_TAG=${{ inputs.zkverify_tag || github.event.inputs.zkverify_tag }} docker compose up -d
         working-directory: src/e2e-tests
 
       - name: Wait for Ethereum contract to be deployed
