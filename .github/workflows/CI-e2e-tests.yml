@@ -38,7 +38,15 @@ on:
         required: false
         type: string
         default: "main"
-
+    secrets:
+      DOCKER_HUB_USERNAME:
+        required: true
+      DOCKER_HUB_TOKEN:
+        required: true
+      GH_TOKEN:
+        required: true
+      QA_SLACK_WEBHOOK_URL:
+        required: true
 env:
   NODE_VERSION: "20"
 
