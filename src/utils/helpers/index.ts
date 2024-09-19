@@ -18,8 +18,6 @@ export const validateEnvVariables = (variables: string[]): void => {
     });
 };
 
-
-
 export const selectVerifyMethod = (session: any, proofType: string): any => {
     switch (proofType) {
         case ProofType.groth16:

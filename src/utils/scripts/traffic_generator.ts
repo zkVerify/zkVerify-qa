@@ -110,7 +110,7 @@ const main = async (): Promise<void> => {
             );
             await Promise.all(proofPromises);
             totalProofsSent += proofTypes.length;
-            const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(2);
+            const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
             console.log(`Sent ${proofTypes.length} proofs, total ${totalProofsSent} proofs, elapsed time: ${elapsedTime}s`);
         }
     }, interval);
@@ -122,7 +122,7 @@ const main = async (): Promise<void> => {
         }, duration);
     });
 
-    const totalElapsedTime = ((Date.now() - startTime) / 1000).toFixed(2);
+    const totalElapsedTime = Math.floor((Date.now() - startTime) / 1000);
     console.log(`Final counts of proofs sent (total time: ${totalElapsedTime}s):`);
     for (const [proofType, count] of Object.entries(proofCounter)) {
         console.log(`${proofType}: ${count}`);

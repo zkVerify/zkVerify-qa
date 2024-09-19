@@ -31,17 +31,28 @@ export async function getLatestAttestationId(): Promise<number> {
     return parseInt(latestAttestationId, 10);
 }
 
-export async function pollLatestAttestationId(expectedId: number, timeout: number = 60000, interval: number = 3000): Promise<boolean> {
+export async function pollLatestAttestationId(expectedId: number, timeout: number = 180000, interval: number = 3000): Promise<boolean> {
     const endTime = Date.now() + timeout;
 
     while (Date.now() < endTime) {
-        const latestAttestationId = await getLatestAttestationId();
-        if (latestAttestationId === expectedId) {
-            console.log(`Expected attestation ID ${expectedId} found on Ethereum zkVerify contract.`);
-            return true;
+        try {
+            const latestAttestationId = await getLatestAttestationId();
+            console.log(`Current latest attestation ID: ${latestAttestationId}, Expected: ${expectedId}`);
+
+            if (latestAttestationId === expectedId) {
+                console.log(`Expected attestation ID ${expectedId} found on Ethereum zkVerify contract.`);
+                return true;
+            }
+
+            const elapsedTime = Math.floor((timeout - (endTime - Date.now())) / 1000);
+            console.log(`Polling Ethereum zkVerify contract for attestation ID ${expectedId}... elapsed time: ${elapsedTime} seconds`);
+
+            const blockNumber = await web3.eth.getBlockNumber();
+            console.log(`Current Ethereum block number: ${blockNumber}`);
+
+        } catch (error) {
+            console.error('Error while polling for attestation ID:', error);
         }
-        const elapsed = (timeout - (endTime - Date.now())) / 1000;
-        console.log(`Polling Ethereum zkVerify contract for attestation ID... elapsed time: ${elapsed.toFixed(2)} seconds`);
         await new Promise(resolve => setTimeout(resolve, interval));
     }
 

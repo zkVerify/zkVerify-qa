@@ -34,7 +34,6 @@ const main = async (): Promise<void> => {
         }
 
         console.log(`Sending ${proofType} proof to zkVerify for verification...`);
-
         const { events, transactionResult } = await verificationCall.execute(proof, publicSignals, vk);
 
         let verifyStartTime = Date.now();
@@ -56,6 +55,8 @@ const main = async (): Promise<void> => {
 
         const transactionDetails = await transactionResult;
         console.log(`Transaction details: ${JSON.stringify(transactionDetails)}`);
+
+
     } catch (error) {
         console.error(`Failed to send proof: ${error}`);
     } finally {

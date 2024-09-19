@@ -57,8 +57,11 @@ if [ -z "$ADDRESS" ]; then
 fi
 
 echo "Contract Deployed: $ADDRESS"
+
 echo "Contract Address: $ADDRESS" >> /data/contract_data.txt
 echo "Private Key: $FIRST_PRIVATE_KEY" >> /data/contract_data.txt
+
+echo "Script completed."
 
 # Keep script running to avoid container exit
 wait
