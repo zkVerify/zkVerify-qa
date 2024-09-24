@@ -43,11 +43,22 @@ The `setup.sh` script clones necessary repositories and manages Docker images fo
 
 ## Docker Setup (Local)
 
+### PRE-REQUISITE: Docker Login
+
+Subquery node requires a user to log their device into docker hub:
+
+```shell
+docker login
+```
+- Follow the steps using an account authorised to access the image, once completed you can continue with steps below
+
+### Run locally
+
 1. Start the system:
 
    ```bash
    docker compose down -v
-   ZKVERIFY_IMAGE_TAG=<tag_name> docker compose up --build
+   docker compose up --build
    ```
 
    This command will start the following services in order:
@@ -58,6 +69,12 @@ The `setup.sh` script clones necessary repositories and manages Docker images fo
    - subquery-node (SubQuery indexer)
    - graphql-engine (GraphQL API)
    - attestation-bot (Attestation service)
+
+- You can optionally set the zkVerify docker image tag to use, otherwise it will use `latest`
+
+```bash
+ZKVERIFY_IMAGE_TAG=<tag_name> docker compose up --build
+```
 
 2. Retrieve the deployed contract address:
 
@@ -72,6 +89,8 @@ The `setup.sh` script clones necessary repositories and manages Docker images fo
    Set `ZKV_CONTRACT` in the `.env` file to the deployed contract address.
 
 Note: This is automatically polled and set in the GitHub Actions workflow, but for running locally must be set.
+
+4. Update the `SUBQUERY_NODE_CHAIN_ID` env variable in `src/e2e-tests/.env`, if you try start with the wrong one the console will error and show you the value to use.
 
 ## Running Tests
 
@@ -112,6 +131,13 @@ docker run -d \
   ```bash
   ./setup.sh --rebuild
   ```
+  
+- If errors about lack of storage space consider clearing the cargo cache and pruning docker
+
+```shell
+cargo clean
+docker system prune -a 
+```
 
 ## Notes: GitHub Actions
 

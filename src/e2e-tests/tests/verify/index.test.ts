@@ -1,6 +1,14 @@
 import { runProofWithoutAttestation, runProofWithAttestation, runVKRegistrationTests } from '../../../tests';
+import { fundLocalE2eTestWallets } from '../../../utils/helpers';
 
 jest.setTimeout(300000);
+
+beforeAll(async () => {
+    const fundingSuccess = await fundLocalE2eTestWallets();
+    if (!fundingSuccess) {
+        throw new Error('Funding failed. Cannot proceed with tests.');
+    }
+});
 
 describe('zkVerify proof journey tests', () => {
     test('should verify all proofs without waiting for a published attestation', async () => {
@@ -15,3 +23,4 @@ describe('zkVerify proof journey tests', () => {
         await runVKRegistrationTests(process.env.PARALLEL === 'true');
     });
 });
+
