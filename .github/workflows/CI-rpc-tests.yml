@@ -36,43 +36,69 @@ jobs:
 
       - name: Parse Test Results
         run: |
-          TEST_OUTPUT=$(cat src/rpc-tests/reports/test_output.txt)
-          
+
           PASSED=0
           FAILED=0
           SKIPPED=0
           TOTAL=0
+          SUITE_FAILED=0
+          SUITE_ERROR=false
 
-          if echo "$TEST_OUTPUT" | grep -q 'Tests:'; then
-              PASSED=$(echo "$TEST_OUTPUT" | awk '/Tests:/ {for(i=1;i<=NF;i++) if($i=="passed,") print $(i-1)}')
-              FAILED=$(echo "$TEST_OUTPUT" | awk '/Tests:/ {for(i=1;i<=NF;i++) if($i=="failed,") print $(i-1)}')
-              SKIPPED=$(echo "$TEST_OUTPUT" | awk '/Tests:/ {for(i=1;i<=NF;i++) if($i=="skipped,") print $(i-1)}')
-              TOTAL=$(echo "$TEST_OUTPUT" | awk '/Tests:/ {for(i=1;i<=NF;i++) if($i=="total") print $(i-1)}')
-          fi
-
-          PASSED=${PASSED:-0}
-          FAILED=${FAILED:-0}
-          SKIPPED=${SKIPPED:-0}
-          TOTAL=${TOTAL:-0}
-
-          echo "PASSED=$PASSED" >> $GITHUB_ENV
-          echo "FAILED=$FAILED" >> $GITHUB_ENV
-          echo "SKIPPED=$SKIPPED" >> $GITHUB_ENV
-          echo "TOTAL=$TOTAL" >> $GITHUB_ENV
-
-          if [ "$FAILED" -eq 0 ]; then
-            OVERALL_STATUS="success"
-            OVERALL_STATUS_EMOJI=":large_green_circle:"
-          else
-            OVERALL_STATUS="failure"
-            OVERALL_STATUS_EMOJI=":red_circle:"
-          fi
-
-          echo "OVERALL_STATUS=$OVERALL_STATUS" >> $GITHUB_ENV
-          echo "OVERALL_STATUS_EMOJI=$OVERALL_STATUS_EMOJI" >> $GITHUB_ENV
-
-          if [ "$OVERALL_STATUS" == "failure" ]; then
+          if [ ! -s src/rpc-tests/reports/test_output.txt ]; then
+            echo "Test output file is missing or empty. Marking as failure."
+            echo "OVERALL_STATUS=failure" >> $GITHUB_ENV
+            echo "OVERALL_STATUS_EMOJI=:red_circle:" >> $GITHUB_ENV
+            echo "ERROR_MESSAGE=Tests failed to run or no output was generated." >> $GITHUB_ENV
             exit 1
+          else
+            TEST_OUTPUT=$(cat src/rpc-tests/reports/test_output.txt)
+
+            if echo "$TEST_OUTPUT" | grep -q 'Test Suites:'; then
+              SUITE_FAILED=$(echo "$TEST_OUTPUT" | awk '/Test Suites:/ {for(i=1;i<=NF;i++) if($i=="failed,") print $(i-1)}')
+              if echo "$TEST_OUTPUT" | grep -q 'Test suite failed to run'; then
+                SUITE_ERROR=true
+              fi
+            fi
+
+            if echo "$TEST_OUTPUT" | grep -q 'Tests:'; then
+                PASSED=$(echo "$TEST_OUTPUT" | awk '/Tests:/ {for(i=1;i<=NF;i++) if($i=="passed,") print $(i-1)}')
+                FAILED=$(echo "$TEST_OUTPUT" | awk '/Tests:/ {for(i=1;i<=NF;i++) if($i=="failed,") print $(i-1)}')
+                SKIPPED=$(echo "$TEST_OUTPUT" | awk '/Tests:/ {for(i=1;i<=NF;i++) if($i=="skipped,") print $(i-1)}')
+                TOTAL=$(echo "$TEST_OUTPUT" | awk '/Tests:/ {for(i=1;i<=NF;i++) if($i=="total") print $(i-1)}')
+            fi
+
+            PASSED=${PASSED:-0}
+            FAILED=${FAILED:-0}
+            SKIPPED=${SKIPPED:-0}
+            TOTAL=${TOTAL:-0}
+            SUITE_FAILED=${SUITE_FAILED:-0}
+
+            echo "PASSED=$PASSED" >> $GITHUB_ENV
+            echo "FAILED=$FAILED" >> $GITHUB_ENV
+            echo "SKIPPED=$SKIPPED" >> $GITHUB_ENV
+            echo "TOTAL=$TOTAL" >> $GITHUB_ENV
+            echo "SUITE_FAILED=$SUITE_FAILED" >> $GITHUB_ENV
+
+            if [ "$FAILED" -eq 0 ] && [ "$SUITE_FAILED" -eq 0 ]; then
+              OVERALL_STATUS="success"
+              OVERALL_STATUS_EMOJI=":large_green_circle:"
+            else
+              OVERALL_STATUS="failure"
+              OVERALL_STATUS_EMOJI=":red_circle:"
+
+              if [ "$SUITE_ERROR" == "true" ]; then
+                echo "ERROR_MESSAGE=Some test suite(s) failed to run due to errors." >> $GITHUB_ENV
+              else
+                echo "ERROR_MESSAGE=Some tests failed to pass." >> $GITHUB_ENV
+              fi
+            fi
+
+            echo "OVERALL_STATUS=$OVERALL_STATUS" >> $GITHUB_ENV
+            echo "OVERALL_STATUS_EMOJI=$OVERALL_STATUS_EMOJI" >> $GITHUB_ENV
+
+            if [ "$OVERALL_STATUS" == "failure" ]; then
+              exit 1
+            fi
           fi
 
       - name: Send Slack Notification
@@ -86,7 +112,9 @@ jobs:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "${{ env.OVERALL_STATUS_EMOJI }} *zkVerify RPC TEST STATUS:* ${{ env.OVERALL_STATUS }} ${{ env.OVERALL_STATUS_EMOJI }}\n*Test Results:*\n*Passed:* ${{ env.PASSED }}\n*Failed:* ${{ env.FAILED }}\n*Skipped:* ${{ env.SKIPPED }}\n*Total:* ${{ env.TOTAL }}\n\n*Build URL:* <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|Click here to view the build>"
+                    "text": "${{ env.OVERALL_STATUS_EMOJI }} *zkVerify RPC TEST STATUS:* ${{ env.OVERALL_STATUS }} ${{ env.OVERALL_STATUS_EMOJI }}\n${
+                      { env.ERROR_MESSAGE } != '' ? '*Error:* ${{ env.ERROR_MESSAGE }}' : '*Test Results:*\n*Passed:* ${{ env.PASSED }}\n*Failed:* ${{ env.FAILED }}\n*Skipped:* ${{ env.SKIPPED }}\n*Total:* ${{ env.TOTAL }}'
+                    }\n\n*Build URL:* <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|Click here to view the build>"
                   }
                 }
               ]
@@ -94,3 +122,4 @@ jobs:
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.QA_SLACK_WEBHOOK_URL }}
           SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+
