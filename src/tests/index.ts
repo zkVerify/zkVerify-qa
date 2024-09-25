@@ -1,18 +1,6 @@
 import { performVerifyTransaction, performVKRegistrationAndVerification, loadProofData } from './common/utils';
 import { ProofType, Groth16CurveType } from 'zkverifyjs';
-
-const proofTypeSeedMap: Record<ProofType, string | undefined> = {
-    [ProofType.ultraplonk]: process.env.SEED_PHRASE_1,
-    [ProofType.risc0]: process.env.SEED_PHRASE_2,
-    [ProofType.fflonk]: process.env.SEED_PHRASE_3,
-    [ProofType.groth16]: process.env.SEED_PHRASE_4,
-};
-
-const groth16CurveSeedMap: Record<string, string | undefined> = {
-    [Groth16CurveType.bn128]: process.env.SEED_PHRASE_4,
-    [Groth16CurveType.bn254]: process.env.SEED_PHRASE_5,
-    [Groth16CurveType.bls12381]: process.env.SEED_PHRASE_6,
-};
+import { getSeedPhrase } from "../utils/wallets";
 
 const proofTypes = Object.keys(ProofType).map(key => ProofType[key as keyof typeof ProofType]);
 const curveTypes = Object.keys(Groth16CurveType).map(key => Groth16CurveType[key as keyof typeof Groth16CurveType]);
@@ -24,15 +12,7 @@ export const runVerifyTest = async (
     curve?: Groth16CurveType,
     runInParallel: boolean = false
 ): Promise<void> => {
-    const seedPhrase = !runInParallel
-        ? process.env.SEED_PHRASE_1
-        : proofType === ProofType.groth16 && curve
-            ? groth16CurveSeedMap[curve]
-            : proofTypeSeedMap[proofType];
-
-    if (!seedPhrase) {
-        throw new Error(`No seed phrase set for proof type ${proofType}${curve ? ` with curve ${curve}` : ''}`);
-    }
+    const seedPhrase = getSeedPhrase(proofType, curve, runInParallel);
     console.log(`Running ${proofType} test${curve ? ` with curve: ${curve}` : ''}`);
 
     const { proof, publicSignals, vk } = loadProofData(proofType, curve);
@@ -45,17 +25,9 @@ export const runVKRegistrationTest = async (
     curve?: Groth16CurveType,
     runInParallel: boolean = false
 ): Promise<void> => {
-    const seedPhrase = !runInParallel
-        ? process.env.SEED_PHRASE_1
-        : proofType === ProofType.groth16 && curve
-            ? groth16CurveSeedMap[curve]
-            : proofTypeSeedMap[proofType];
-
-    if (!seedPhrase) {
-        throw new Error(`No seed phrase set for proof type ${proofType}${curve ? ` with curve ${curve}` : ''}`);
-    }
-
+    const seedPhrase = getSeedPhrase(proofType, curve, runInParallel);
     console.log(`Running VK registration for ${proofType} test${curve ? ` with curve: ${curve}` : ''}`);
+
     const { proof, publicSignals, vk } = loadProofData(proofType, curve);
 
     await performVKRegistrationAndVerification(seedPhrase, proofType, proof, publicSignals, vk);
