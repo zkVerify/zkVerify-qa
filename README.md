@@ -159,9 +159,6 @@ Would be:
 act workflow_dispatch -j rpc-build-and-test -P ubuntu-latest=ghcr.io/catthehacker/ubuntu:act-latest --network host
 ```
 
-
-
-
 > NOTE: To avoid rebuilding the images in each run, we can temporarily comment the cleanup step in [.github/workflows/CI-e2e-tests.yml](.github/workflows/CI-e2e-tests.yml)
 > NOTE: The network flag is used to connect the act container to the host network so the services can communicate with each other.
 
