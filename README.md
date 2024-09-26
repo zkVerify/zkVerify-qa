@@ -140,11 +140,27 @@ Act allows you to test GitHub workflow changes locally.
 
 ### Running Act
 
-Run the following command from the parent directory to test your GitHub Actions workflow locally:
+Run the following command from the parent directory to test your ALL GitHub Actions workflows locally:
 
 ```sh
 act workflow_dispatch -P ubuntu-latest=ghcr.io/catthehacker/ubuntu:act-latest --network host
 ```
+
+To run a specific workflow pass in the `j` flag with the job name of the workflow, e.g.:
+
+```yaml
+jobs:
+  rpc-build-and-test:
+```
+
+Would be:
+
+```sh
+act workflow_dispatch -j rpc-build-and-test -P ubuntu-latest=ghcr.io/catthehacker/ubuntu:act-latest --network host
+```
+
+
+
 
 > NOTE: To avoid rebuilding the images in each run, we can temporarily comment the cleanup step in [.github/workflows/CI-e2e-tests.yml](.github/workflows/CI-e2e-tests.yml)
 > NOTE: The network flag is used to connect the act container to the host network so the services can communicate with each other.
