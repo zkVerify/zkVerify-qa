@@ -16,15 +16,22 @@ jobs:
 
       - name: Build Docker image
         id: build_image
-        run: docker build -t rpc-tests:latest -f src/rpc-tests/Dockerfile .
+        run: docker build --no-cache -t rpc-tests:latest -f src/rpc-tests/Dockerfile .
         working-directory: .
 
       - name: Run RPC tests
         id: run_tests
         run: |
           mkdir -p src/rpc-tests/reports
+          echo "Starting Docker container for RPC tests..."
+          
           docker run --rm rpc-tests:latest \
-            -e SEED_PHRASE=${{ secrets.QA_SEED_PHRASE }} \
+            -e SEED_PHRASE_1=${{ secrets.QA_SEED_PHRASE_1 }} \
+            -e SEED_PHRASE_2=${{ secrets.QA_SEED_PHRASE_2 }} \
+            -e SEED_PHRASE_3=${{ secrets.QA_SEED_PHRASE_3 }} \
+            -e SEED_PHRASE_4=${{ secrets.QA_SEED_PHRASE_4 }} \
+            -e SEED_PHRASE_5=${{ secrets.QA_SEED_PHRASE_5 }} \
+            -e SEED_PHRASE_6=${{ secrets.QA_SEED_PHRASE_6 }} \
             -v ${{ github.workspace }}/src/rpc-tests/reports:/usr/src/app/reports \
             2>&1 | tee src/rpc-tests/reports/test_output.txt
         working-directory: .
@@ -94,7 +101,6 @@ jobs:
           echo "OVERALL_STATUS_EMOJI=$OVERALL_STATUS_EMOJI" >> $GITHUB_ENV
           echo "SLACK_MESSAGE=$SLACK_MESSAGE" >> $GITHUB_ENV
 
-          # Exit with failure if the overall status is failure
           if [ "$OVERALL_STATUS" == "failure" ]; then
             exit 1
           fi

@@ -48,13 +48,11 @@ export async function createAndFundLocalTestWallets(): Promise<void> {
             process.env[`SEED_PHRASE_${index + 2}`] = seed;
         });
 
-        let { nonce } = await api.query.system.account(alice.address);
-
         const transferPromises = wallets.map(async (wallet, index) => {
             const transfer = api.tx.balances.transferAllowDeath(wallet.address, TOKEN_AMOUNT);
 
             return new Promise((resolve, reject) => {
-                transfer.signAndSend(alice, { nonce: nonce.toNumber() + index }, ({ status }) => {
+                transfer.signAndSend(alice, { nonce: index }, ({ status }) => {
                     if (status.isFinalized) {
                         resolve(true);
                     }
@@ -73,7 +71,13 @@ export async function createAndFundLocalTestWallets(): Promise<void> {
 }
 
 /**
- * Decides whether to create and fund local wallets based on the `LOCAL_NODE` environment variable.
+ * Sets up and funds local test wallets if the `LOCAL_NODE` environment variable is set to `true`.
+ * Otherwise, it checks for the existence of pre-configured wallets by ensuring that the required seed phrases
+ * (SEED_PHRASE_1 to SEED_PHRASE_6) are available in the environment variables.
+ *
+ * @throws {Error} If `LOCAL_NODE` is not set to `true` and one or more required seed phrases are missing from the environment variables.
+ *
+ * @returns {Promise<void>} Resolves when local wallets are created and funded or when pre-configured wallets are validated.
  */
 export const setupLocalOrExistingWallets = async (): Promise<void> => {
     if (process.env.LOCAL_NODE === 'true') {
@@ -81,6 +85,22 @@ export const setupLocalOrExistingWallets = async (): Promise<void> => {
         await createAndFundLocalTestWallets();
     } else {
         console.log('Using pre-configured wallets from environment variables.');
+
+        // Check if SEED_PHRASE_1 to SEED_PHRASE_6 are set
+        const requiredSeedPhrases = [
+            'SEED_PHRASE_1',
+            'SEED_PHRASE_2',
+            'SEED_PHRASE_3',
+            'SEED_PHRASE_4',
+            'SEED_PHRASE_5',
+            'SEED_PHRASE_6',
+        ];
+
+        const missingVariables = requiredSeedPhrases.filter((envVar) => !process.env[envVar]);
+
+        if (missingVariables.length > 0) {
+            throw new Error(`Missing required environment variables: ${missingVariables.join(', ')}`);
+        }
     }
 };
 
