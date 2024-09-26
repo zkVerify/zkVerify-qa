@@ -106,7 +106,7 @@ jobs:
           fi
 
       - name: Send Slack Notification
-        if: always()
+        if: always() && (failure() || success())
         uses: slackapi/slack-github-action@v1.25.0
         with:
           payload: |
