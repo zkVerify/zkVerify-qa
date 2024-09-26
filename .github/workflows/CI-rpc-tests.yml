@@ -70,7 +70,7 @@ jobs:
             if [ "$TOTAL" -eq 0 ]; then
               OVERALL_STATUS="failure"
               OVERALL_STATUS_EMOJI=":red_circle:"
-              SLACK_MESSAGE="*No tests were run.*"
+              SLACK_MESSAGE="*No tests were executed!*"
             fi
 
             # If any test suite failed (captures code/import errors etc.), override the overall status to failure
@@ -110,7 +110,7 @@ jobs:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "${{ env.OVERALL_STATUS_EMOJI }} *zkVerify RPC TEST STATUS:* ${{ env.OVERALL_STATUS }} ${{ env.OVERALL_STATUS_EMOJI }}\n${{ env.SLACK_MESSAGE }}\n\n*Build URL:* <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|Click here to view the build>"
+                    "text": "${{ env.OVERALL_STATUS_EMOJI }} *zkVerify RPC TEST STATUS:* ${{ env.OVERALL_STATUS }} ${{ env.OVERALL_STATUS_EMOJI }}\n\n${{ env.SLACK_MESSAGE }}\n\n*Build URL:* <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|Click here to view the build>"
                   }
                 }
               ]

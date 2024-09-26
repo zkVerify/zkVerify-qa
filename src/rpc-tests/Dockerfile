@@ -12,7 +12,7 @@ COPY tsconfig.json ./
 RUN npm install
 
 COPY src/rpc-tests ./src/rpc-tests
-COPY src/utils/helpers ./src/utils/helpers
+COPY src/utils ./src/utils
 COPY src/tests ./src/tests
 
 EXPOSE 3000
