@@ -86,9 +86,28 @@ jobs:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
+      - name: Sanitize zkVerify_version
+        id: sanitize_version
+        run: |
+          # Determine the source of zkverify_version
+          VERSION="${{ inputs.zkverify_version || github.event.inputs.zkverify_version }}"
+
+          # Replace '/' with '-' and remove any other invalid characters for Docker tags
+          SANITIZED_VERSION=$(echo "$VERSION" | tr '/' '-' | sed 's/[^a-zA-Z0-9_.-]/-/g')
+
+          # Ensure the tag starts with a letter or number
+          SANITIZED_VERSION=$(echo "$SANITIZED_VERSION" | sed 's/^[^a-zA-Z0-9]/0&/')
+
+          # Truncate to 128 characters (Docker tag length limit)
+          SANITIZED_VERSION="${SANITIZED_VERSION:0:128}"
+
+          echo "SANITIZED_ZKVERIFY_VERSION=${SANITIZED_VERSION}" >> $GITHUB_ENV
+          echo "Sanitized zkverify_version: $SANITIZED_VERSION"
+
       - name: Run Setup Script (Clone Repositories & Build Docker Image)
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          IMAGE_TAG: ${{ env.SANITIZED_ZKVERIFY_VERSION }}
         run: |
           ./setup.sh --fetch-latest --rebuild \
             --zkverify-branch ${{ inputs.zkverify_version || github.event.inputs.zkverify_version}} \
@@ -99,8 +118,8 @@ jobs:
       - name: Set Up Docker Containers
         run: |
           docker compose down -v
-          ZKVERIFY_IMAGE_TAG=${{ inputs.zkverify_version || github.event.inputs.zkverify_version }} docker compose build --no-cache
-          ZKVERIFY_IMAGE_TAG=${{ inputs.zkverify_version || github.event.inputs.zkverify_version }} docker compose up -d
+          ZKVERIFY_IMAGE_TAG=${{ env.SANITIZED_ZKVERIFY_VERSION }} docker compose build --no-cache
+          ZKVERIFY_IMAGE_TAG=${{ env.SANITIZED_ZKVERIFY_VERSION }} docker compose up -d
         working-directory: src/e2e-tests
 
       - name: Wait for Docker Containers to be ready

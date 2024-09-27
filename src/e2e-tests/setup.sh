@@ -7,6 +7,7 @@ fetch_latest=0
 zkverify_version="main"
 nh_attestation_bot_branch="main"
 zkv_attestation_contracts_branch="main"
+zkv_image_tag=${IMAGE_TAG}
 
 # Command-line options
 while [[ "$#" -gt 0 ]]; do
@@ -107,22 +108,22 @@ fi
 image_name="horizenlabs/zkverify"
 
 if [[ "${rebuild}" -eq 1 ]]; then
-    containers=$(docker ps -a -q --filter ancestor="${image_name}:${zkverify_version}")
+    containers=$(docker ps -a -q --filter ancestor="${image_name}:${zkv_image_tag}")
     if [[ -n "${containers}" ]]; then
-        echo "Stopping and removing containers using the image ${image_name}:${zkverify_version}..."
+        echo "Stopping and removing containers using the image ${image_name}:${zkv_image_tag}..."
         docker stop "${containers}"
         docker rm -f "${containers}"
     fi
 
-    if docker images -q "${image_name}:${zkverify_version}"; then
-        echo "Removing image ${image_name}:${zkverify_version}..."
-        docker rmi -f "${image_name}:${zkverify_version}"
+    if docker images -q "${image_name}:${zkv_image_tag}"; then
+        echo "Removing image ${image_name}:${zkv_image_tag}..."
+        docker rmi -f "${image_name}:${zkv_image_tag}"
     fi
 
     if [[ -f "docker/dockerfiles/zkv-node.Dockerfile" ]]; then
-        echo "Building zkVerify image with tag: ${zkverify_version}"
-        docker build -f docker/dockerfiles/zkv-node.Dockerfile -t "${image_name}:${zkverify_version}" .
-        echo "zkVerify image tagged as ${image_name}:${zkverify_version}"
+        echo "Building zkVerify image with tag: ${zkv_image_tag}"
+        docker build -f docker/dockerfiles/zkv-node.Dockerfile -t "${image_name}:${zkv_image_tag}" .
+        echo "zkVerify image tagged as ${image_name}:${zkv_image_tag}"
         echo "zkVerify is set up and ready."
     else
         echo "zkv-node.Dockerfile not found in 'docker/dockerfiles/', check the path and filename."
