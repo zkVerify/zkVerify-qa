@@ -91,6 +91,7 @@ ZKVERIFY_IMAGE_TAG=<tag_name> docker compose up --build
 Note: This is automatically polled and set in the GitHub Actions workflow, but for running locally must be set.
 
 4. Update the `SUBQUERY_NODE_CHAIN_ID` env variable in `src/e2e-tests/.env`, if you try start with the wrong one the console will error and show you the value to use.
+- !! Do Not Commit this changed value, GitHub Actions requires the current value set, not the new one you generate locally.
 
 ## Running Tests
 
@@ -125,6 +126,12 @@ docker run -d \
 ```
 
 ## Troubleshooting
+
+- To view containers and logs you will need to comment out the clean up step in the workflow:
+
+```yaml
+- name: Cleanup Docker resources
+```
 
 - If the `local_node` service is not initializing, check that we are not using the remote image since that one was build for amd64 architectures. We need to build the image locally to properly run the services locally.
 
