@@ -2,17 +2,22 @@ import { ProofType, Groth16CurveType } from "zkverifyjs";
 import { ApiPromise, Keyring, WsProvider } from '@polkadot/api';
 import { cryptoWaitReady, mnemonicGenerate } from '@polkadot/util-crypto';
 
-const proofTypeSeedMap: Record<ProofType, string | undefined> = {
-    [ProofType.ultraplonk]: process.env.SEED_PHRASE_1,
-    [ProofType.risc0]: process.env.SEED_PHRASE_2,
-    [ProofType.fflonk]: process.env.SEED_PHRASE_3,
-    [ProofType.groth16]: process.env.SEED_PHRASE_4,
+const localWalletData: { wallets: any[], seedPhrases: string[] } = {
+    wallets: [],
+    seedPhrases: []
 };
 
-const groth16CurveSeedMap: Record<string, string | undefined> = {
-    [Groth16CurveType.bn128]: process.env.SEED_PHRASE_4,
-    [Groth16CurveType.bn254]: process.env.SEED_PHRASE_5,
-    [Groth16CurveType.bls12381]: process.env.SEED_PHRASE_6,
+const proofTypeIndexMap: Record<ProofType, number> = {
+    [ProofType.ultraplonk]: 1,
+    [ProofType.risc0]: 2,
+    [ProofType.fflonk]: 3,
+    [ProofType.groth16]: 4,
+};
+
+const curveIndexMap: Record<Groth16CurveType, number> = {
+    [Groth16CurveType.bn128]: 4,
+    [Groth16CurveType.bn254]: 5,
+    [Groth16CurveType.bls12381]: 6,
 };
 
 /**
@@ -33,10 +38,10 @@ export async function createAndFundLocalTestWallets(): Promise<void> {
             throw new Error("SEED_PHRASE_1 is not set in environment variables.");
         }
         const alice = keyring.addFromUri(aliceSeedPhrase);
+        const newSeedPhrases: string[] = [aliceSeedPhrase];
+        const wallets = [alice];
 
         // Generate 5 new wallets (total Alice + 5 = 6)
-        const newSeedPhrases: string[] = [];
-        const wallets = [];
         for (let i = 0; i < 5; i++) {
             const mnemonic = mnemonicGenerate();
             const newWallet = keyring.addFromUri(mnemonic);
@@ -44,30 +49,66 @@ export async function createAndFundLocalTestWallets(): Promise<void> {
             wallets.push(newWallet);
         }
 
+        localWalletData.seedPhrases = newSeedPhrases;
+        localWalletData.wallets = wallets;
+
         newSeedPhrases.forEach((seed, index) => {
-            process.env[`SEED_PHRASE_${index + 2}`] = seed;
+            console.log(`SEED_PHRASE_${index + 1}: ${seed}`);
         });
 
-        const transferPromises = wallets.map(async (wallet, index) => {
+        const { nonce } = await api.query.system.account(alice.address);
+        console.log(`Starting nonce for Alice: ${nonce}`);
+
+        const transferPromises = wallets.slice(1).map((wallet, index) => {
+            const currentNonce = nonce.toNumber() + index;
+            console.log(`Preparing transaction for wallet ${wallet.address} with nonce ${currentNonce}`);
+
             const transfer = api.tx.balances.transferAllowDeath(wallet.address, TOKEN_AMOUNT);
 
-            return new Promise((resolve, reject) => {
-                transfer.signAndSend(alice, { nonce: index }, ({ status }) => {
-                    if (status.isFinalized) {
-                        resolve(true);
+            return new Promise<void>((resolve, reject) => {
+                transfer.signAndSend(alice, { nonce: currentNonce }, ({ status, dispatchError }) => {
+                    console.log(`Transaction status for wallet ${wallet.address}: ${status.type}`);
+
+                    if (status.isInBlock) {
+                        console.log(`Transaction for wallet ${wallet.address} is in block.`);
+                        resolve();
+                    }
+
+                    if (dispatchError) {
+                        console.error(`Dispatch error for wallet ${wallet.address}:`, dispatchError.toString());
+
+                        if (dispatchError.isModule) {
+                            const decoded = api.registry.findMetaError(dispatchError.asModule);
+                            const { name, section } = decoded;
+                            reject(new Error(`${section}.${name}: ${dispatchError.asModule.error || 'Unknown error occurred'}`));
+                        } else {
+                            reject(new Error(dispatchError.toString()));
+                        }
                     }
                 }).catch((error) => {
+                    console.error(`Error while sending transaction to wallet ${wallet.address}:`, error);
                     reject(error);
                 });
             });
         });
 
         await Promise.all(transferPromises);
+
+        localWalletData.seedPhrases.forEach((seed, index) => {
+            console.log(`Seed phrase for wallet ${index}: ${seed}`);
+        });
+
         await api.disconnect();
 
     } catch (error) {
         console.error('Error funding wallets:', error);
+        throw error;
     }
+}
+
+
+export function getGlobalWalletData() {
+    return localWalletData;
 }
 
 /**
@@ -83,6 +124,12 @@ export const setupLocalOrExistingWallets = async (): Promise<void> => {
     if (process.env.LOCAL_NODE === 'true') {
         console.log('Setting up and funding local wallets...');
         await createAndFundLocalTestWallets();
+
+        const globalWalletData = getGlobalWalletData();
+        if (!globalWalletData.wallets.length || !globalWalletData.seedPhrases.length) {
+            throw new Error('Local wallets were not properly created or funded.');
+        }
+        console.log('Local wallets are successfully set up and funded.');
     } else {
         console.log('Using pre-configured wallets from environment variables.');
 
@@ -101,28 +148,55 @@ export const setupLocalOrExistingWallets = async (): Promise<void> => {
         if (missingVariables.length > 0) {
             throw new Error(`Missing required environment variables: ${missingVariables.join(', ')}`);
         }
+
+        console.log('Pre-configured wallets are successfully validated.');
     }
 };
 
-/**
- * Get the seed phrase for a given proof type and optional curve.
- *
- * @param {ProofType} proofType - The proof type.
- * @param {Groth16CurveType} [curve] - The optional curve type (for Groth16).
- * @param {boolean} [runInParallel] - Whether the tests are running in parallel.
- * @returns {string} The seed phrase for the proof type and curve.
- * @throws {Error} If no seed phrase is found.
- */
-export const getSeedPhrase = (proofType: ProofType, curve?: Groth16CurveType, runInParallel: boolean = false): string => {
-    const seedPhrase = !runInParallel
-        ? process.env.SEED_PHRASE_1
-        : proofType === ProofType.groth16 && curve
-            ? groth16CurveSeedMap[curve]
-            : proofTypeSeedMap[proofType];
 
+export const getSeedPhrase = (
+    proofType: ProofType,
+    curve?: Groth16CurveType,
+    isLocalNode: boolean = false,
+    runInParallel: boolean = false
+): string => {
+    const seedPhrase = isLocalNode && runInParallel
+        ? getLocalSeedPhrase(proofType, curve)
+        : getSeedPhraseFromEnv(proofType, curve, isLocalNode, runInParallel);
+
+    console.log(`Mapped ${proofType}${curve ? ` with curve ${curve}` : ''} to Seed Phrase: ${seedPhrase}`);
+    return checkSeedPhrase(seedPhrase, proofType, curve);
+};
+
+const getSeedPhraseFromEnv = (
+    proofType: ProofType,
+    curve?: Groth16CurveType,
+    isLocalNode: boolean = false,
+    runInParallel: boolean = false
+): string | undefined => {
+    if (!runInParallel || isLocalNode) {
+        return process.env.SEED_PHRASE_1;
+    }
+
+    if (proofType === ProofType.groth16 && curve) {
+        return process.env[`SEED_PHRASE_${curveIndexMap[curve]}`];
+    }
+
+    return process.env[`SEED_PHRASE_${proofTypeIndexMap[proofType]}`];
+};
+
+const getLocalSeedPhrase = (proofType: ProofType, curve?: Groth16CurveType): string | undefined => {
+    const globalWalletData = getGlobalWalletData();
+    const index = proofType === ProofType.groth16 && curve
+        ? curveIndexMap[curve] - 1
+        : proofTypeIndexMap[proofType] - 1;
+
+    return globalWalletData.seedPhrases[index];
+};
+
+const checkSeedPhrase = (seedPhrase: string | undefined, proofType: ProofType, curve?: Groth16CurveType): string => {
     if (!seedPhrase) {
         throw new Error(`No seed phrase set for proof type ${proofType}${curve ? ` with curve ${curve}` : ''}`);
     }
-
     return seedPhrase;
 };

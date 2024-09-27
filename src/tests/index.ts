@@ -10,9 +10,10 @@ export const runVerifyTest = async (
     withAttestation: boolean = false,
     checkExistence: boolean = false,
     curve?: Groth16CurveType,
+    isLocalNode: boolean = false,
     runInParallel: boolean = false
 ): Promise<void> => {
-    const seedPhrase = getSeedPhrase(proofType, curve, runInParallel);
+    const seedPhrase = getSeedPhrase(proofType, curve, isLocalNode, runInParallel);
     console.log(`Running ${proofType} test${curve ? ` with curve: ${curve}` : ''}`);
 
     const { proof, publicSignals, vk } = loadProofData(proofType, curve);
@@ -23,9 +24,10 @@ export const runVerifyTest = async (
 export const runVKRegistrationTest = async (
     proofType: ProofType,
     curve?: Groth16CurveType,
+    isLocalNode: boolean = false,
     runInParallel: boolean = false
 ): Promise<void> => {
-    const seedPhrase = getSeedPhrase(proofType, curve, runInParallel);
+    const seedPhrase = getSeedPhrase(proofType, curve, isLocalNode, runInParallel);
     console.log(`Running VK registration for ${proofType} test${curve ? ` with curve: ${curve}` : ''}`);
 
     const { proof, publicSignals, vk } = loadProofData(proofType, curve);
@@ -33,16 +35,17 @@ export const runVKRegistrationTest = async (
     await performVKRegistrationAndVerification(seedPhrase, proofType, proof, publicSignals, vk);
 };
 
-export const runProofWithoutAttestation = async (runInParallel: boolean = false): Promise<void> => {
+export const runProofWithoutAttestation = async (isLocalNode: boolean = false, runInParallel: boolean = false): Promise<void> => {
     if (runInParallel) {
         await Promise.allSettled(
             proofTypes.map(proofType => {
+                console.log(`Running Proof Type: ${proofType}`);
                 if (proofType === ProofType.groth16) {
                     return Promise.allSettled(
-                        curveTypes.map(curve => runVerifyTest(proofType, false, false, curve, runInParallel))
+                        curveTypes.map(curve => runVerifyTest(proofType, false, false, curve, isLocalNode, runInParallel))
                     );
                 } else {
-                    return runVerifyTest(proofType, false, false, undefined, runInParallel);
+                    return runVerifyTest(proofType, false, false, undefined, isLocalNode, runInParallel);
                 }
             })
         );
@@ -59,16 +62,16 @@ export const runProofWithoutAttestation = async (runInParallel: boolean = false)
     }
 };
 
-export const runProofWithAttestation = async (runInParallel: boolean = false): Promise<void> => {
+export const runProofWithAttestation = async (isLocalNode: boolean = false, runInParallel: boolean = false): Promise<void> => {
     if (runInParallel) {
         await Promise.allSettled(
             proofTypes.map(proofType => {
                 if (proofType === ProofType.groth16) {
                     return Promise.allSettled(
-                        curveTypes.map(curve => runVerifyTest(proofType, true, true, curve, runInParallel))
+                        curveTypes.map(curve => runVerifyTest(proofType, true, true, curve, isLocalNode, runInParallel))
                     );
                 } else {
-                    return runVerifyTest(proofType, true, true, undefined, runInParallel);
+                    return runVerifyTest(proofType, true, true, undefined, isLocalNode, runInParallel);
                 }
             })
         );
@@ -76,25 +79,25 @@ export const runProofWithAttestation = async (runInParallel: boolean = false): P
         for (const proofType of proofTypes) {
             if (proofType === ProofType.groth16) {
                 for (const curve of curveTypes) {
-                    await runVerifyTest(proofType, true, true, curve, runInParallel);
+                    await runVerifyTest(proofType, true, true, curve, isLocalNode, runInParallel);
                 }
             } else {
-                await runVerifyTest(proofType, true, true, undefined, runInParallel);
+                await runVerifyTest(proofType, true, true, undefined, isLocalNode, runInParallel);
             }
         }
     }
 };
 
-export const runVKRegistrationTests = async (runInParallel: boolean = false): Promise<void> => {
+export const runVKRegistrationTests = async (isLocalNode: boolean = false, runInParallel: boolean = false): Promise<void> => {
     if (runInParallel) {
         await Promise.allSettled(
             proofTypes.map(proofType => {
                 if (proofType === ProofType.groth16) {
                     return Promise.allSettled(
-                        curveTypes.map(curve => runVKRegistrationTest(proofType, curve, runInParallel))
+                        curveTypes.map(curve => runVKRegistrationTest(proofType, curve, isLocalNode, runInParallel))
                     );
                 } else {
-                    return runVKRegistrationTest(proofType, undefined, runInParallel);
+                    return runVKRegistrationTest(proofType, undefined, isLocalNode, runInParallel);
                 }
             })
         );
