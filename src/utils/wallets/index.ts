@@ -51,7 +51,8 @@ export async function createAndFundLocalTestWallets(): Promise<void> {
 
         localWalletData.seedPhrases = newSeedPhrases;
         localWalletData.wallets = wallets;
-
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
         const { nonce } = await api.query.system.account(alice.address);
         console.log(`Starting nonce for Alice: ${nonce}`);
 
