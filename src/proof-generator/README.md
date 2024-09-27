@@ -113,7 +113,7 @@ docker build -t proof-generator -f src/proof-generator/Dockerfile .
 ```
 3. Run the container and pass in the interval and duration (1 proof every INTERVAL for DURATION):
 ```shell
-docker run -e INTERVAL=10 -e DURATION=120 proof-generator
+docker run -it -e INTERVAL=10 -e DURATION=120 proof-generator
 ```
 
 ## Notes
