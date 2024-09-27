@@ -52,10 +52,6 @@ export async function createAndFundLocalTestWallets(): Promise<void> {
         localWalletData.seedPhrases = newSeedPhrases;
         localWalletData.wallets = wallets;
 
-        newSeedPhrases.forEach((seed, index) => {
-            console.log(`SEED_PHRASE_${index + 1}: ${seed}`);
-        });
-
         const { nonce } = await api.query.system.account(alice.address);
         console.log(`Starting nonce for Alice: ${nonce}`);
 
@@ -93,13 +89,7 @@ export async function createAndFundLocalTestWallets(): Promise<void> {
         });
 
         await Promise.all(transferPromises);
-
-        localWalletData.seedPhrases.forEach((seed, index) => {
-            console.log(`Seed phrase for wallet ${index}: ${seed}`);
-        });
-
         await api.disconnect();
-
     } catch (error) {
         console.error('Error funding wallets:', error);
         throw error;
@@ -164,7 +154,6 @@ export const getSeedPhrase = (
         ? getLocalSeedPhrase(proofType, curve)
         : getSeedPhraseFromEnv(proofType, curve, isLocalNode, runInParallel);
 
-    console.log(`Mapped ${proofType}${curve ? ` with curve ${curve}` : ''} to Seed Phrase: ${seedPhrase}`);
     return checkSeedPhrase(seedPhrase, proofType, curve);
 };
 
