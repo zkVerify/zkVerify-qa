@@ -71,14 +71,6 @@ for ((i=0; i<repo_count; i++)); do
     (
         cd "$target_dir"
 
-        # Debugging: List available branches, tags, and recent commits
-        echo "Available branches:"
-        git branch -a
-        echo "Available tags:"
-        git tag -l
-        echo "Latest commits:"
-        git log --oneline -n 5
-
         # Attempt to checkout as branch or tag
         if git rev-parse --verify "$repo_branch_or_tag" >/dev/null 2>&1; then
             git checkout "$repo_branch_or_tag"
