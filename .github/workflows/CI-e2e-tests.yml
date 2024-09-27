@@ -54,11 +54,13 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
+          repository: HorizenLabs/zkVerify-qa
+          ref: main
           clean: true
           fetch-depth: 1
 
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
 
@@ -89,16 +91,16 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           ./setup.sh --fetch-latest --rebuild \
-            --zkverify-branch ${{ github.event.inputs.zkverify_version || inputs.zkverify_version }} \
-            --nh-attestation-bot-branch ${{ github.event.inputs.attestation_bot_branch || inputs.attestation_bot_branch }} \
-            --zkv-attestation-contracts-branch ${{ github.event.inputs.zkv_contracts_branch || inputs.zkv_contracts_branch }}
+            --zkverify-branch ${{ inputs.zkverify_version || github.event.inputs.zkverify_version}} \
+            --nh-attestation-bot-branch ${{ inputs.attestation_bot_branch || github.event.inputs.attestation_bot_branch }} \
+            --zkv-attestation-contracts-branch ${{ inputs.zkv_contracts_branch || github.event.inputs.zkv_contracts_branch }}
         working-directory: src/e2e-tests
 
       - name: Set Up Docker Containers
         run: |
           docker compose down -v
-          ZKVERIFY_IMAGE_TAG=${{ github.event.inputs.zkverify_version || inputs.zkverify_version }} docker compose build --no-cache
-          ZKVERIFY_IMAGE_TAG=${{ github.event.inputs.zkverify_version || inputs.zkverify_version }} docker compose up -d
+          ZKVERIFY_IMAGE_TAG=${{ inputs.zkverify_version || github.event.inputs.zkverify_version }} docker compose build --no-cache
+          ZKVERIFY_IMAGE_TAG=${{ inputs.zkverify_version || github.event.inputs.zkverify_version }} docker compose up -d
         working-directory: src/e2e-tests
 
       - name: Wait for Ethereum contract to be deployed
