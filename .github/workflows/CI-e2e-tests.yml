@@ -97,7 +97,7 @@ jobs:
       - name: Set Up Docker Containers
         run: |
           docker compose down -v
-          ZKVERIFY_IMAGE_TAG=${{ github.event.inputs.zkverify_version || inputs.zkverify_version }} docker compose build --no-cache --pull
+          ZKVERIFY_IMAGE_TAG=${{ github.event.inputs.zkverify_version || inputs.zkverify_version }} docker compose build --no-cache
           ZKVERIFY_IMAGE_TAG=${{ github.event.inputs.zkverify_version || inputs.zkverify_version }} docker compose up -d
         working-directory: src/e2e-tests
 
