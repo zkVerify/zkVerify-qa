@@ -3,33 +3,27 @@ name: zkVerify E2E Tests
 on:
   workflow_dispatch:
     inputs:
-      zkverify_tag:
-        description: "Docker image tag for zkverify (commit hash or tag name)"
+      zkverify_version:
+        description: "Commit hash or tag for zkVerify repository"
         required: true
         type: string
-      zkverify_branch:
-        description: "Branch or tag for zkVerify repository"
+      attestation_bot_branch:
+        description: "Branch for attestation bot"
         required: false
         type: string
         default: "main"
-      attestation_bot_branch:
-        description: "Branch for attestation bot"
-        default: "main"
       zkv_contracts_branch:
         description: "Branch for zkv attestation contracts"
+        required: false
+        type: string
         default: "main"
 
   workflow_call:
     inputs:
-      zkverify_tag:
-        description: "Docker image tag for zkverify (commit hash or tag name)"
+      zkverify_version:
+        description: "Commit hash or tag for zkVerify repository"
         required: true
         type: string
-      zkverify_branch:
-        description: "Branch  or tag for zkVerify repository"
-        required: false
-        type: string
-        default: "main"
       attestation_bot_branch:
         description: "Branch for attestation bot"
         required: false
@@ -95,17 +89,16 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           ./setup.sh --fetch-latest \
-            --zkverify-branch ${{ github.event.inputs.zkverify_branch || inputs.zkverify_branch }} \
+            --zkverify-branch ${{ github.event.inputs.zkverify_version || inputs.zkverify_version }} \
             --nh-attestation-bot-branch ${{ github.event.inputs.attestation_bot_branch || inputs.attestation_bot_branch }} \
             --zkv-attestation-contracts-branch ${{ github.event.inputs.zkv_contracts_branch || inputs.zkv_contracts_branch }}
-            --docker-image-tag ${{ github.event.inputs.zkverify_tag || inputs.zkverify_tag }}
         working-directory: src/e2e-tests
 
       - name: Set Up Docker Containers
         run: |
           docker compose down -v
-          ZKVERIFY_IMAGE_TAG=${{ github.event.inputs.zkverify_tag || inputs.zkverify_tag }} docker compose build --no-cache --pull
-          ZKVERIFY_IMAGE_TAG=${{ github.event.inputs.zkverify_tag || inputs.zkverify_tag }} docker compose up -d
+          ZKVERIFY_IMAGE_TAG=${{ github.event.inputs.zkverify_version || inputs.zkverify_version }} docker compose build --no-cache --pull
+          ZKVERIFY_IMAGE_TAG=${{ github.event.inputs.zkverify_version || inputs.zkverify_version }} docker compose up -d
         working-directory: src/e2e-tests
 
       - name: Wait for Ethereum contract to be deployed

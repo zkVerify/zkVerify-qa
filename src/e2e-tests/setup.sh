@@ -4,20 +4,18 @@ set -eou pipefail
 # Default values
 rebuild=0
 fetch_latest=0
-zkverify_branch="main"
+zkverify_version="main"
 nh_attestation_bot_branch="main"
 zkv_attestation_contracts_branch="main"
-docker_image_tag="latest"
 
 # Command-line options
 while [[ "$#" -gt 0 ]]; do
     case $1 in
         --rebuild) rebuild=1 ;;
         --fetch-latest) fetch_latest=1 ;;
-        --zkverify-branch) zkverify_branch="$2"; shift ;;
+        --zkverify-branch) zkverify_version="$2"; shift ;;
         --nh-attestation-bot-branch) nh_attestation_bot_branch="$2"; shift ;;
         --zkv-attestation-contracts-branch) zkv_attestation_contracts_branch="$2"; shift ;;
-        --docker-image-tag) docker_image_tag="$2"; shift ;;
         *) echo "Unknown parameter passed: $1"; exit 1 ;;
     esac
     shift
@@ -26,7 +24,7 @@ done
 # Repositories information
 repo_names=("zkVerify" "nh-attestation-bot" "zkv-attestation-contracts")
 repo_urls=("https://github.com/HorizenLabs/zkVerify.git" "https://github.com/HorizenLabs/NH-attestation-bot.git" "https://github.com/HorizenLabs/zkv-attestation-contracts.git")
-repo_branches=("$zkverify_branch" "$nh_attestation_bot_branch" "$zkv_attestation_contracts_branch")
+repo_branches=("$zkverify_version" "$nh_attestation_bot_branch" "$zkv_attestation_contracts_branch")
 repo_count=${#repo_names[@]}
 
 
@@ -70,6 +68,7 @@ for ((i=0; i<repo_count; i++)); do
 
     # Checkout the specific branch or tag
     (cd "$target_dir" && git checkout "$repo_branch_or_tag")
+    echo "Checked out ${repo_branch_or_tag} for ${repo}."
 done
 
 
@@ -87,22 +86,22 @@ fi
 image_name="horizenlabs/zkverify"
 
 if [[ "${rebuild}" -eq 1 ]]; then
-    containers=$(docker ps -a -q --filter ancestor="${image_name}:${docker_image_tag}")
+    containers=$(docker ps -a -q --filter ancestor="${image_name}:${zkverify_version}")
     if [[ -n "${containers}" ]]; then
-        echo "Stopping and removing containers using the image ${image_name}:${docker_image_tag}..."
+        echo "Stopping and removing containers using the image ${image_name}:${zkverify_version}..."
         docker stop "${containers}"
         docker rm -f "${containers}"
     fi
 
-    if docker images -q "${image_name}:${docker_image_tag}"; then
-        echo "Removing image ${image_name}:${docker_image_tag}..."
-        docker rmi -f "${image_name}:${docker_image_tag}"
+    if docker images -q "${image_name}:${zkverify_version}"; then
+        echo "Removing image ${image_name}:${zkverify_version}..."
+        docker rmi -f "${image_name}:${zkverify_version}"
     fi
 
     if [[ -f "docker/dockerfiles/zkv-node.Dockerfile" ]]; then
-        echo "Building zkVerify image with tag: ${docker_image_tag}"
-        docker build -f docker/dockerfiles/zkv-node.Dockerfile -t "${image_name}:${docker_image_tag}" .
-        echo "zkVerify image tagged as ${image_name}:${docker_image_tag}"
+        echo "Building zkVerify image with tag: ${zkverify_version}"
+        docker build -f docker/dockerfiles/zkv-node.Dockerfile -t "${image_name}:${zkverify_version}" .
+        echo "zkVerify image tagged as ${image_name}:${zkverify_version}"
         echo "zkVerify is set up and ready."
     else
         echo "zkv-node.Dockerfile not found in 'docker/dockerfiles/', check the path and filename."
