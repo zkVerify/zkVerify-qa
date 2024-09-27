@@ -4,10 +4,13 @@ on:
   workflow_dispatch:
     inputs:
       zkverify_tag:
-        description: "Docker image tag for zkverify"
-        default: "latest"
+        description: "Docker image tag for zkverify (commit hash or tag name)"
+        required: true
+        type: string
       zkverify_branch:
-        description: "Branch for zkVerify repository"
+        description: "Branch or tag for zkVerify repository"
+        required: false
+        type: string
         default: "main"
       attestation_bot_branch:
         description: "Branch for attestation bot"
@@ -19,12 +22,11 @@ on:
   workflow_call:
     inputs:
       zkverify_tag:
-        description: "Docker image tag for zkverify"
-        required: false
+        description: "Docker image tag for zkverify (commit hash or tag name)"
+        required: true
         type: string
-        default: "latest"
       zkverify_branch:
-        description: "Branch for zkVerify repository"
+        description: "Branch  or tag for zkVerify repository"
         required: false
         type: string
         default: "main"
@@ -55,7 +57,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout Code
         uses: actions/checkout@v4
         with:
           clean: true
@@ -66,7 +68,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: Cache npm cache
+      - name: Cache npm dependencies
         uses: actions/cache@v4
         with:
           path: ~/.npm
@@ -74,11 +76,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-npm-
 
-      - name: Remove existing node_modules
+      - name: Remove Existing node_modules
         run: rm -rf node_modules
         working-directory: src
 
-      - name: Install npm dependencies
+      - name: Install npm Dependencies
         run: npm ci
         working-directory: src
 
@@ -88,7 +90,7 @@ jobs:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
-      - name: Run setup script (git clone latest zkVerify & attestation-bot repos)
+      - name: Run Setup Script (Clone Repositories & Build Docker Image)
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
@@ -96,9 +98,10 @@ jobs:
             --zkverify-branch ${{ github.event.inputs.zkverify_branch || inputs.zkverify_branch }} \
             --nh-attestation-bot-branch ${{ github.event.inputs.attestation_bot_branch || inputs.attestation_bot_branch }} \
             --zkv-attestation-contracts-branch ${{ github.event.inputs.zkv_contracts_branch || inputs.zkv_contracts_branch }}
+            --docker-image-tag ${{ github.event.inputs.zkverify_tag || inputs.zkverify_tag }}
         working-directory: src/e2e-tests
 
-      - name: Set up Docker containers
+      - name: Set Up Docker Containers
         run: |
           docker compose down -v
           ZKVERIFY_IMAGE_TAG=${{ github.event.inputs.zkverify_tag || inputs.zkverify_tag }} docker compose build --no-cache --pull
