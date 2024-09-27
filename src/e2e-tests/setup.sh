@@ -50,25 +50,46 @@ for ((i=0; i<repo_count; i++)); do
         echo "Directory $target_dir does not exist. Cloning..."
         if [ -n "$auth_prefix" ]; then
             # Running in GitHub Actions
-            git clone "${auth_prefix}${repo_url#https://}" "$target_dir"
+            git clone --no-single-branch "${auth_prefix}${repo_url#https://}" "$target_dir"
         else
             # Running locally
-            git clone "$repo_url" "$target_dir"
+            git clone --no-single-branch "$repo_url" "$target_dir"
         fi
         echo "Repository $repo cloned successfully."
     else
         echo "Directory $target_dir already exists."
         if [ "$fetch_latest" -eq 1 ]; then
             echo "Fetching latest for $repo..."
-            (cd "$target_dir" && git fetch origin)
+            (cd "$target_dir" && git fetch --all)
         else
             echo "Skipping update for $repo."
         fi
     fi
 
-    # Checkout the specific branch or tag
-    (cd "$target_dir" && git checkout "$repo_branch_or_tag")
-    echo "Checked out ${repo_branch_or_tag} for ${repo}."
+    # Checkout the specific branch, tag, or commit hash
+    (
+        cd "$target_dir"
+
+        # Debugging: List available branches, tags, and recent commits
+        echo "Available branches:"
+        git branch -a
+        echo "Available tags:"
+        git tag -l
+        echo "Latest commits:"
+        git log --oneline -n 5
+
+        # Attempt to checkout as branch or tag
+        if git rev-parse --verify "$repo_branch_or_tag" >/dev/null 2>&1; then
+            git checkout "$repo_branch_or_tag"
+            echo "Checked out ${repo_branch_or_tag} for ${repo}."
+        else
+            # Assume it's a commit hash
+            echo "Attempting to fetch and checkout commit hash ${repo_branch_or_tag}..."
+            git fetch origin "$repo_branch_or_tag" || { echo "Failed to fetch commit ${repo_branch_or_tag}"; exit 1; }
+            git checkout "$repo_branch_or_tag" || { echo "Failed to checkout commit ${repo_branch_or_tag}"; exit 1; }
+            echo "Checked out commit ${repo_branch_or_tag} for ${repo}."
+        fi
+    )
 done
 
 
