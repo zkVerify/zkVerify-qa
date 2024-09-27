@@ -103,6 +103,14 @@ jobs:
           ZKVERIFY_IMAGE_TAG=${{ inputs.zkverify_version || github.event.inputs.zkverify_version }} docker compose up -d
         working-directory: src/e2e-tests
 
+      - name: Wait for Docker Containers to be ready
+        run: sleep 30
+
+      - name: Log Docker Containers
+        run: |
+          docker ps -a
+        working-directory: src/e2e-tests
+
       - name: Wait for Ethereum contract to be deployed
         run: |
           MAX_WAIT_TIME=300
