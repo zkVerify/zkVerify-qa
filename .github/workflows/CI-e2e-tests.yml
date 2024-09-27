@@ -88,7 +88,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
-          ./setup.sh --fetch-latest \
+          ./setup.sh --fetch-latest --rebuild \
             --zkverify-branch ${{ github.event.inputs.zkverify_version || inputs.zkverify_version }} \
             --nh-attestation-bot-branch ${{ github.event.inputs.attestation_bot_branch || inputs.attestation_bot_branch }} \
             --zkv-attestation-contracts-branch ${{ github.event.inputs.zkv_contracts_branch || inputs.zkv_contracts_branch }}
