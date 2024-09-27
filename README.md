@@ -134,9 +134,9 @@ Act allows you to test GitHub workflow changes locally.
 
    - QA_SEED_PHRASE: We can keep as is.
    - QA_SLACK_WEBHOOK_URL: Required to send notifications to the Slack channel
-   - GH_TOKEN: Required to clone the zkVerify and attestation-bot repositories
-   - DOCKER_HUB_USERNAME: Required to pull private docker images
-   - DOCKER_HUB_TOKEN: Required to pull private docker images
+   - GH_TOKEN: Your personal [GH token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens) with permissions required to clone the zkVerify and attestation-bot repositories
+   - DOCKER_HUB_USERNAME: Permissioned account required to pull private docker images
+   - DOCKER_HUB_TOKEN: Permissioned account required to pull private docker images
 
 ### Running Act
 

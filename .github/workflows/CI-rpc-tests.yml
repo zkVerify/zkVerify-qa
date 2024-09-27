@@ -37,6 +37,7 @@ jobs:
         working-directory: .
 
       - name: Parse Test Results
+        if: always() && (failure() || success())
         run: |
           TEST_OUTPUT=$(cat src/rpc-tests/reports/test_output.txt || echo "")
 

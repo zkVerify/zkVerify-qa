@@ -128,6 +128,7 @@ jobs:
         working-directory: src/e2e-tests
 
       - name: Parse Test Results
+        if: always() && (failure() || success())
         run: |
           TEST_OUTPUT=$(cat reports/test_output.txt || echo "")
 
