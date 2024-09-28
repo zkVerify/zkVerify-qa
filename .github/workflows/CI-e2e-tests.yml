@@ -123,9 +123,11 @@ jobs:
         working-directory: src/e2e-tests
 
       - name: Wait for Docker Containers to be ready
+        if: always()
         run: sleep 30
 
       - name: Log Docker Containers
+        if: always()
         run: |
           docker ps -a
         working-directory: src/e2e-tests
