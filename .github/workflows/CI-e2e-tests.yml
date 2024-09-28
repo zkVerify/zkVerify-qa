@@ -129,7 +129,7 @@ jobs:
       - name: Log Docker Containers
         if: always()
         run: |
-          docker ps -a
+          docker logs subquery-node
         working-directory: src/e2e-tests
 
       - name: Wait for Ethereum contract to be deployed
