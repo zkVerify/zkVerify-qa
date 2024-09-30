@@ -5,7 +5,7 @@ set -eEuo pipefail
 # Configuration Variables
 # -----------------------------
 
-BLOCKCHAIN_NODE_WS_URL="ws://localhost:9944"
+BLOCKCHAIN_NODE_WS_URL="ws://local_node:9944"
 # JSON-RPC request to fetch the genesis hash (chainId)
 CHAIN_ID_REQUEST='{"id":1,"jsonrpc":"2.0","method":"chain_getBlockHash","params":[0]}'
 # Number of retries and interval between retries
@@ -16,7 +16,22 @@ RETRY_INTERVAL=2  # in seconds
 install_websocat() {
   if ! command -v /tmp/websocat &> /dev/null; then
     echo "websocat not found. Installing to /tmp..."
-    wget -qO- https://github.com/vi/websocat/releases/download/v1.13.0/websocat.aarch64-unknown-linux-musl > /tmp/websocat
+
+    ARCH=$(uname -m)
+    case "${ARCH}" in
+      x86_64)
+        WEBSOCAT_URL="https://github.com/vi/websocat/releases/download/v1.13.0/websocat.x86_64-unknown-linux-musl"
+        ;;
+      aarch64)
+        WEBSOCAT_URL="https://github.com/vi/websocat/releases/download/v1.13.0/websocat.aarch64-unknown-linux-musl"
+        ;;
+      *)
+        echo "Unsupported architecture: ${ARCH}"
+        exit 1
+        ;;
+    esac
+
+    wget -qO- "${WEBSOCAT_URL}" > /tmp/websocat
     chmod +x /tmp/websocat
   fi
 }
