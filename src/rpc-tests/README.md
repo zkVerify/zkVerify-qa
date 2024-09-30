@@ -10,7 +10,7 @@ cp .env.testnet.rpc .env
 
 ### Running the tests
 
-To run the tests, ensure .env files exist then execute one of:
+To run the tests, ensure environment variables have been set (.env.local.rpc or .env.testnet.rpc) then execute one of:
 ```sh
 npm run test:rpc:local
 npm run test:rpc:testnet

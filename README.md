@@ -11,13 +11,13 @@ The list of supported proofs can be found in [./src/config.ts](./src/config.ts),
 To send a newly generated proof of a specific type, run:
 
 ```shell
-npx ts-node src/send-proof/index.ts <proofType> <skipWaitingForAttestationEventBoolean>
+npx ts-node src/send-proof/index.ts <proofType> <waitForPublishedAttestation>
 ```
 
 Example:
 
 ```shell
-npx ts-node src/send-proof/index.ts groth16 true
+npx ts-node src/send-proof/index.ts groth16 false
 ```
 
 ## RPC Tests
@@ -134,16 +134,29 @@ Act allows you to test GitHub workflow changes locally.
 
    - QA_SEED_PHRASE: We can keep as is.
    - QA_SLACK_WEBHOOK_URL: Required to send notifications to the Slack channel
-   - GH_TOKEN: Required to clone the zkVerify and attestation-bot repositories
-   - DOCKER_HUB_USERNAME: Required to pull private docker images
-   - DOCKER_HUB_TOKEN: Required to pull private docker images
+   - GH_TOKEN: Your personal [GH token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens) with permissions required to clone the zkVerify and attestation-bot repositories
+   - DOCKER_HUB_USERNAME: Permissioned account required to pull private docker images
+   - DOCKER_HUB_TOKEN: Permissioned account required to pull private docker images
 
 ### Running Act
 
-Run the following command from the parent directory to test your GitHub Actions workflow locally:
+Run the following command from the parent directory to test your ALL GitHub Actions workflows locally:
 
 ```sh
 act workflow_dispatch -P ubuntu-latest=ghcr.io/catthehacker/ubuntu:act-latest --network host
+```
+
+To run a specific workflow pass in the `j` flag with the job name of the workflow, e.g.:
+
+```yaml
+jobs:
+  rpc-build-and-test:
+```
+
+Would be:
+
+```sh
+act workflow_dispatch -j rpc-build-and-test -P ubuntu-latest=ghcr.io/catthehacker/ubuntu:act-latest --network host
 ```
 
 > NOTE: To avoid rebuilding the images in each run, we can temporarily comment the cleanup step in [.github/workflows/CI-e2e-tests.yml](.github/workflows/CI-e2e-tests.yml)

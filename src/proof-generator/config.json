@@ -5,14 +5,14 @@
       "rate": 1,
       "interval": 5,
       "duration": 60,
-      "skipAttestation": true
+      "waitForPublishedAttestation": false
     },
     {
       "type": "fflonk",
       "rate": 1,
       "interval": 10,
       "duration": 120,
-      "skipAttestation": true
+      "waitForPublishedAttestation": false
     }
   ]
 }

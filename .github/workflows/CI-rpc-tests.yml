@@ -16,59 +16,98 @@ jobs:
 
       - name: Build Docker image
         id: build_image
-        run: docker build -t rpc-tests:latest -f src/rpc-tests/Dockerfile .
+        run: docker build --no-cache -t rpc-tests:latest -f src/rpc-tests/Dockerfile .
         working-directory: .
 
       - name: Run RPC tests
         id: run_tests
         run: |
           mkdir -p src/rpc-tests/reports
-          docker run --rm -e SEED_PHRASE=${{ secrets.QA_SEED_PHRASE }} -v ${{ github.workspace }}/src/rpc-tests/reports:/usr/src/app/reports rpc-tests:latest 2>&1 | tee src/rpc-tests/reports/test_output.txt
+          echo "Starting Docker container for RPC tests..."
+          
+          docker run --rm \
+            -e SEED_PHRASE_1=${{ secrets.QA_SEED_PHRASE_1 }} \
+            -e SEED_PHRASE_2=${{ secrets.QA_SEED_PHRASE_2 }} \
+            -e SEED_PHRASE_3=${{ secrets.QA_SEED_PHRASE_3 }} \
+            -e SEED_PHRASE_4=${{ secrets.QA_SEED_PHRASE_4 }} \
+            -e SEED_PHRASE_5=${{ secrets.QA_SEED_PHRASE_5 }} \
+            -e SEED_PHRASE_6=${{ secrets.QA_SEED_PHRASE_6 }} \
+            -v ${{ github.workspace }}/src/rpc-tests/reports:/usr/src/app/reports \
+            rpc-tests:latest 2>&1 | tee src/rpc-tests/reports/test_output.txt
         working-directory: .
 
       - name: Parse Test Results
+        if: ${{ !cancelled() }}
         run: |
-          TEST_OUTPUT=$(cat src/rpc-tests/reports/test_output.txt)
-          
+          TEST_OUTPUT=$(cat src/rpc-tests/reports/test_output.txt || echo "")
+
+          # Initialize variables
           PASSED=0
           FAILED=0
           SKIPPED=0
           TOTAL=0
+          SUITE_FAILED=0
+          OVERALL_STATUS="failure"
+          OVERALL_STATUS_EMOJI=":red_circle:"
+          SLACK_MESSAGE="*Test report was not available to parse.*"
 
-          if echo "$TEST_OUTPUT" | grep -q 'Tests:'; then
+          # Check if test report is available
+          if [ -s src/rpc-tests/reports/test_output.txt ]; then
+            # Parse suite results
+            if echo "$TEST_OUTPUT" | grep -q 'Test Suites:'; then
+              SUITE_FAILED=$(echo "$TEST_OUTPUT" | awk '/Test Suites:/ {for(i=1;i<=NF;i++) if($i=="failed,") print $(i-1)}')
+            fi
+
+            # Parse individual test results
+            if echo "$TEST_OUTPUT" | grep -q 'Tests:'; then
               PASSED=$(echo "$TEST_OUTPUT" | awk '/Tests:/ {for(i=1;i<=NF;i++) if($i=="passed,") print $(i-1)}')
               FAILED=$(echo "$TEST_OUTPUT" | awk '/Tests:/ {for(i=1;i<=NF;i++) if($i=="failed,") print $(i-1)}')
               SKIPPED=$(echo "$TEST_OUTPUT" | awk '/Tests:/ {for(i=1;i<=NF;i++) if($i=="skipped,") print $(i-1)}')
               TOTAL=$(echo "$TEST_OUTPUT" | awk '/Tests:/ {for(i=1;i<=NF;i++) if($i=="total") print $(i-1)}')
+
+              PASSED=${PASSED:-0}
+              FAILED=${FAILED:-0}
+              SKIPPED=${SKIPPED:-0}
+              TOTAL=${TOTAL:-0}
+
+              # Build the Slack message with test results
+              SLACK_MESSAGE="*Test Results:*\n*Passed:* $PASSED\n*Failed:* $FAILED\n*Skipped:* $SKIPPED\n*Total:* $TOTAL"
+            fi
+
+            # Check if no tests were run
+            if [ "$TOTAL" -eq 0 ]; then
+              OVERALL_STATUS="failure"
+              OVERALL_STATUS_EMOJI=":red_circle:"
+              SLACK_MESSAGE="*No tests were executed!*"
+            fi
+
+            # If any test suite failed (captures code/import errors etc.), override the overall status to failure
+            if [ "$SUITE_FAILED" -gt 0 ]; then
+              OVERALL_STATUS="failure"
+              OVERALL_STATUS_EMOJI=":red_circle:"
+              SLACK_MESSAGE="$SLACK_MESSAGE\n*Test Suites Failed:* $SUITE_FAILED"
+            elif [ "$FAILED" -eq 0 ] && [ "$TOTAL" -gt 0 ]; then
+              OVERALL_STATUS="success"
+              OVERALL_STATUS_EMOJI=":large_green_circle:"
+            fi
           fi
 
-          PASSED=${PASSED:-0}
-          FAILED=${FAILED:-0}
-          SKIPPED=${SKIPPED:-0}
-          TOTAL=${TOTAL:-0}
-
+          # Write environment variables to pass between workflow steps
           echo "PASSED=$PASSED" >> $GITHUB_ENV
           echo "FAILED=$FAILED" >> $GITHUB_ENV
           echo "SKIPPED=$SKIPPED" >> $GITHUB_ENV
           echo "TOTAL=$TOTAL" >> $GITHUB_ENV
-
-          if [ "$FAILED" -eq 0 ]; then
-            OVERALL_STATUS="success"
-            OVERALL_STATUS_EMOJI=":large_green_circle:"
-          else
-            OVERALL_STATUS="failure"
-            OVERALL_STATUS_EMOJI=":red_circle:"
-          fi
-
+          echo "SUITE_FAILED=$SUITE_FAILED" >> $GITHUB_ENV
           echo "OVERALL_STATUS=$OVERALL_STATUS" >> $GITHUB_ENV
           echo "OVERALL_STATUS_EMOJI=$OVERALL_STATUS_EMOJI" >> $GITHUB_ENV
+          echo "SLACK_MESSAGE=$SLACK_MESSAGE" >> $GITHUB_ENV
 
           if [ "$OVERALL_STATUS" == "failure" ]; then
             exit 1
           fi
 
       - name: Send Slack Notification
-        if: always()
+        if: ${{ !cancelled() }}
         uses: slackapi/slack-github-action@v1.25.0
         with:
           payload: |
@@ -78,7 +117,7 @@ jobs:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "${{ env.OVERALL_STATUS_EMOJI }} *zkVerify RPC TEST STATUS:* ${{ env.OVERALL_STATUS }} ${{ env.OVERALL_STATUS_EMOJI }}\n*Test Results:*\n*Passed:* ${{ env.PASSED }}\n*Failed:* ${{ env.FAILED }}\n*Skipped:* ${{ env.SKIPPED }}\n*Total:* ${{ env.TOTAL }}\n\n*Build URL:* <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|Click here to view the build>"
+                    "text": "${{ env.OVERALL_STATUS_EMOJI }} *zkVerify RPC TEST STATUS:* ${{ env.OVERALL_STATUS }} ${{ env.OVERALL_STATUS_EMOJI }}\n\n${{ env.SLACK_MESSAGE }}\n\n*Build URL:* <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|Click here to view the build>"
                   }
                 }
               ]

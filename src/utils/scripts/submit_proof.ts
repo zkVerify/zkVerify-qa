@@ -1,3 +1,4 @@
+// TODO: Needs changing to use zkverifyjs
 import 'dotenv/config';
 import { ApiPromise, WsProvider } from '@polkadot/api';
 import { SubmittableExtrinsic } from '@polkadot/api/types';
@@ -60,13 +61,12 @@ const getProofDetails = (proofType: string) => {
 const createAndValidateAccount = async (keyring: Keyring, api: ApiPromise): Promise<KeyringPair> => {
    let account: KeyringPair;
    try {
-      account = keyring.addFromUri(process.env.SEED_PHRASE as string);
+      account = keyring.addFromUri(process.env.SEED_PHRASE_1 as string);
    } catch (error) {
       console.error('Failed to open the wallet. Please check the SEED_PHRASE value.', (error as Error).message);
       process.exit(1);
    }
 
-   // Check account balance
    const { address } = account;
    const accountInfo = await api.query.system.account(address) as AccountInfo;
    const balance = accountInfo.data.free;
@@ -82,7 +82,7 @@ const createAndValidateAccount = async (keyring: Keyring, api: ApiPromise): Prom
  * Main function to execute the proof submission.
  */
 const main = async (): Promise<void> => {
-   validateEnvVariables(['WEBSOCKET', 'SEED_PHRASE']);
+   validateEnvVariables(['WEBSOCKET', 'SEED_PHRASE_1']);
 
    const provider = new WsProvider(process.env.WEBSOCKET as string);
    const api = await createApi(provider);

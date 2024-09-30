@@ -84,14 +84,10 @@ abstract class SnarkHandler implements ProofHandler {
             throw new Error(`Generated ${proofType} proof is invalid`);
         }
 
-        const formattedProof = this.formatProof(proof, publicSignals);
-        const formattedPublicSignals = this.formatPubs(publicSignals);
-        const formattedVk = this.formatVk(vkJson);
-
         return {
-            proof: formattedProof,
-            publicSignals: formattedPublicSignals,
-            vk: formattedVk,
+            proof: proof,
+            publicSignals: publicSignals,
+            vk: vkJson,
         };
     }
 }

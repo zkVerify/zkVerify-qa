@@ -13,6 +13,7 @@ RUN npm install
 
 COPY src/rpc-tests ./src/rpc-tests
 COPY src/utils ./src/utils
+COPY src/tests ./src/tests
 
 EXPOSE 3000
 

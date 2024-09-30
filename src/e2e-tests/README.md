@@ -41,13 +41,24 @@ The `setup.sh` script clones necessary repositories and manages Docker images fo
 ./setup.sh --fetch-latest --zkverify-branch develop --docker-image-tag 0.5.0
 ```
 
-## Docker Setup
+## Docker Setup (Local)
+
+### PRE-REQUISITE: Docker Login
+
+Subquery node requires a user to log their device into docker hub:
+
+```shell
+docker login
+```
+- Follow the steps using an account authorised to access the image, once completed you can continue with steps below
+
+### Run locally
 
 1. Start the system:
 
    ```bash
    docker compose down -v
-   ZKVERIFY_IMAGE_TAG=<tag_name> docker compose up --build
+   docker compose up --build
    ```
 
    This command will start the following services in order:
@@ -58,6 +69,12 @@ The `setup.sh` script clones necessary repositories and manages Docker images fo
    - subquery-node (SubQuery indexer)
    - graphql-engine (GraphQL API)
    - attestation-bot (Attestation service)
+
+- You can optionally set the zkVerify docker image tag to use, otherwise it will use `latest`
+
+```bash
+ZKVERIFY_IMAGE_TAG=<tag_name> docker compose up --build
+```
 
 2. Retrieve the deployed contract address:
 
@@ -70,6 +87,11 @@ The `setup.sh` script clones necessary repositories and manages Docker images fo
 
 3. Update environment
    Set `ZKV_CONTRACT` in the `.env` file to the deployed contract address.
+
+Note: This is automatically polled and set in the GitHub Actions workflow, but for running locally must be set.
+
+4. Update the `SUBQUERY_NODE_CHAIN_ID` env variable in `src/e2e-tests/.env`, if you try start with the wrong one the console will error and show you the value to use.
+- !! Do Not Commit this changed value, GitHub Actions requires the current value set, not the new one you generate locally.
 
 ## Running Tests
 
@@ -105,11 +127,24 @@ docker run -d \
 
 ## Troubleshooting
 
+- To view containers and logs you will need to comment out the clean up step in the workflow:
+
+```yaml
+- name: Cleanup Docker resources
+```
+
 - If the `local_node` service is not initializing, check that we are not using the remote image since that one was build for amd64 architectures. We need to build the image locally to properly run the services locally.
 
   ```bash
   ./setup.sh --rebuild
   ```
+  
+- If errors about lack of storage space consider clearing the cargo cache and pruning docker
+
+```shell
+cargo clean
+docker system prune -a 
+```
 
 ## Notes: GitHub Actions
 

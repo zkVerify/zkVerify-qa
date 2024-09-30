@@ -27,3 +27,9 @@ src/proof-generator/risc0/Cargo.lock
 src/proof-generator/risc0/methods/guest/Cargo.lock
 src/proof-generator/risc0/target
 src/proof-generator/risc0/data
+
+# Prevent accidentally committing seedphrases
+.env
+.env.local.rpc
+.env.testnet.rpc
+.env.local.e2e
