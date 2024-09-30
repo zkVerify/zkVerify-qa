@@ -13,7 +13,7 @@ export const validateEnvVariables = (variables: string[]): void => {
             throw new Error(`Required environment variable ${envVar} is not set.`);
         }
         if (envVar.includes('SEED_PHRASE') && process.env[envVar] === 'INSERT_SEED_PHRASE') {
-            throw new Error('The SEED_PHRASE environment variable has not been set.');
+            throw new Error(`The ${envVar} environment variable has not been set.`);
         }
     });
 };

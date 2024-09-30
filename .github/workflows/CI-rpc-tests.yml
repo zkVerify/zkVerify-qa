@@ -37,7 +37,7 @@ jobs:
         working-directory: .
 
       - name: Parse Test Results
-        if: always() && (failure() || success())
+        if: ${{ !cancelled() }}
         run: |
           TEST_OUTPUT=$(cat src/rpc-tests/reports/test_output.txt || echo "")
 
@@ -107,7 +107,7 @@ jobs:
           fi
 
       - name: Send Slack Notification
-        if: always() && (failure() || success())
+        if: ${{ !cancelled() }}
         uses: slackapi/slack-github-action@v1.25.0
         with:
           payload: |

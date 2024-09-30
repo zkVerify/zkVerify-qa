@@ -128,7 +128,7 @@ jobs:
         working-directory: src/e2e-tests
 
       - name: Parse Test Results
-        if: always() && (failure() || success())
+        if: ${{ !cancelled() }}
         run: |
           TEST_OUTPUT=$(cat reports/test_output.txt || echo "")
 
@@ -199,7 +199,7 @@ jobs:
         working-directory: src/e2e-tests
 
       - name: Send Slack Notification
-        if: always() && (failure() || success())
+        if: ${{ !cancelled() }}
         uses: slackapi/slack-github-action@v1.25.0
         with:
           payload: |
