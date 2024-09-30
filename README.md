@@ -178,7 +178,6 @@ To catch any error before running the tests, we can perform some checks:
 
 3. Check if the `subquery-node` is running without errors
 
-   - If is returning the error `Value of ChainId does not match across all endpoints` we will need to update the `SUBQUERY_NODE_CHAIN_ID` from the [src/e2e-tests/.env](./src/e2e-tests/.env#L19) to the one that is expecting
    - If is returning the error `ERROR Having a problem when getting finalized block Error: Latest Finalized Height is not available` and stopping the workflow, that's because the `local_node` is not finished syncing, you can comment the `docker compose down -v` from [.github/workflows/CI-e2e-tests.yml](.github/workflows/CI-e2e-tests.yml#L95) and execute the workflow again.
 
 4. Check if the `attestation-bot` is running and dosen't have any errors
