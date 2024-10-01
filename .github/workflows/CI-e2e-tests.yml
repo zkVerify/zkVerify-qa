@@ -3,9 +3,11 @@ name: zkVerify E2E Tests
 on:
   workflow_dispatch:
     inputs:
+      zkverify_docker_tag:
+        description: "Docker image tag for zkverify"
+        type: string
       zkverify_version:
         description: "Commit hash or tag for zkVerify repository"
-        required: true
         type: string
       attestation_bot_branch:
         description: "Branch for attestation bot"
@@ -20,9 +22,11 @@ on:
 
   workflow_call:
     inputs:
+      zkverify_docker_tag:
+        description: "Docker image tag for zkverify"
+        type: string
       zkverify_version:
         description: "Commit hash or tag for zkVerify repository"
-        required: true
         type: string
       attestation_bot_branch:
         description: "Branch for attestation bot"
@@ -51,6 +55,17 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Check that only one input is provided for a zkVerify version
+        run: |
+          if [ "${{ inputs.zkverify_docker_tag }}" != "" ] && [ "${{ inputs.inputs.zkverify_version }}" != "" ]; then
+            echo "Error: Both zkverify_docker_tag and zkverify_version cannot be provided."
+            exit 1
+          elif [ "${{ inputs.zkverify_docker_tag }}" == "" ] && [ "${{ inputs.inputs.zkverify_version }}" == "" ]; then
+            echo "Error: Either zkverify_docker_tag or zkverify_version must be provided."
+            exit 1
+          else
+            echo "Validation passed. Proceeding with the workflow."
+
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
@@ -88,6 +103,7 @@ jobs:
 
       - name: Sanitize zkVerify_version
         id: sanitize_version
+        if: ${{ inputs.zkverify_version != '' }}
         run: |
           # Determine the source of zkverify_version
           VERSION="${{ inputs.zkverify_version || github.event.inputs.zkverify_version }}"
@@ -104,13 +120,25 @@ jobs:
           echo "SANITIZED_ZKVERIFY_VERSION=${SANITIZED_VERSION}" >> $GITHUB_ENV
           echo "Sanitized zkverify_version: $SANITIZED_VERSION"
 
-      - name: Run Setup Script (Clone Repositories & Build Docker Image)
+      - name: Run Setup Script (Clone Repositories & Build zkVerify Docker Image)
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
-          IMAGE_TAG: ${{ env.SANITIZED_ZKVERIFY_VERSION }}
+          LOCAL_IMAGE_TAG: ${{ env.SANITIZED_ZKVERIFY_VERSION }}
+        if: ${{ inputs.zkverify_version != '' }}
         run: |
           ./setup.sh --fetch-latest --rebuild \
-            --zkverify-branch ${{ inputs.zkverify_version || github.event.inputs.zkverify_version}} \
+            --zkverify-branch ${{ inputs.zkverify_version || github.event.inputs.zkverify_version }} \
+            --nh-attestation-bot-branch ${{ inputs.attestation_bot_branch || github.event.inputs.attestation_bot_branch }} \
+            --zkv-attestation-contracts-branch ${{ inputs.zkv_contracts_branch || github.event.inputs.zkv_contracts_branch }}
+        working-directory: src/e2e-tests
+
+      - name: Run Setup Script (Clone Repositories & Pull zkVerify Docker Image)
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        if: ${{ inputs.zkverify_docker_tag != '' }}
+        run: |
+          ./setup.sh --fetch-latest \
+            --docker-image-tag ${{ inputs.zkverify_docker_tag || github.event.inputs.zkverify_docker_tag }} \
             --nh-attestation-bot-branch ${{ inputs.attestation_bot_branch || github.event.inputs.attestation_bot_branch }} \
             --zkv-attestation-contracts-branch ${{ inputs.zkv_contracts_branch || github.event.inputs.zkv_contracts_branch }}
         working-directory: src/e2e-tests
