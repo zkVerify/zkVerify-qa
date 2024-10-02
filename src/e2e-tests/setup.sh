@@ -81,7 +81,7 @@ function build_zkverify_image() {
 
 # Check if running in GitHub Actions
 if [ "${GITHUB_ACTIONS:-}" = "true" ]; then
-    echo "Running in GitHub Actions... Docker image handling will be skipped."
+    echo "Running in GitHub Actions."
     if [ -z "${GH_TOKEN:-}" ]; then
         echo "Error: GH_TOKEN is not set. Please set it as a secret in your GitHub Actions workflow."
         exit 1

@@ -124,5 +124,5 @@ docker run -d \
 
 ## Notes: GitHub Actions
 
-- When running in GitHub Actions, Docker image handling is skipped as the workflow manages it.
+- When running in GitHub Actions, set either `zkverify_docker_tag` to use a Docker image from Docker hub, or `zkverify_version` to build a Docker image from a specific branch/commit/tag.
 - Ensure all required environment variables are set before running tests or scripts.
