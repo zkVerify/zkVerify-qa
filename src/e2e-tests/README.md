@@ -30,16 +30,27 @@ The `setup.sh` script clones necessary repositories and manages Docker images fo
 
 - `--fetch-latest`: Update local repositories to the latest code.
 - `--rebuild`: Force rebuild of the zkVerify Docker image.
-- `--zkverify-branch <branch>`: Specify zkVerify repository branch (default: main).
+- `--zkverify-version <branch | commit | tag>`: Specify zkVerify repository branch, commit, or tag (default: main).
 - `--nh-attestation-bot-branch <branch>`: Specify nh-attestation-bot repository branch (default: main).
 - `--zkv-attestation-contracts-branch <branch>`: Specify zkv-attestation-contracts repository branch (default: main).
 - `--docker-image-tag <tag>`: Specify zkVerify Docker image tag (default: latest).
 
 ### Example
+-  ```bash
+    ./setup.sh --fetch-latest --zkverify-version develop --docker-image-tag 0.5.0
+      ```
+      This will first check if a Docker image `horizenlabs/zkverify:0.5.0` exists locally.
 
-```bash
-./setup.sh --fetch-latest --zkverify-branch develop --docker-image-tag 0.5.0
-```
+      If not, it will check Docker Hub for the Docker image `horizenlabs/zkverify:0.5.0`.
+      
+      If not, it will build a Docker image from the develop branch.
+
+
+- ```bash
+    ./setup.sh --fetch-latest --rebuild --zkverify-version develop --docker-image-tag 0.5.0
+   ```
+   
+   The `--rebuild` tag will rebuild the Docker image, regardless whether `horizenlab/zkverify:0.5.0` exists locally or on Docker hub.
 
 ## Docker Setup
 
