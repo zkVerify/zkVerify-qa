@@ -123,13 +123,13 @@ jobs:
       - name: Run Setup Script (Clone Repositories & Build zkVerify Docker Image)
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
-          LOCAL_IMAGE_TAG: ${{ env.SANITIZED_ZKVERIFY_VERSION }}
         if: ${{ inputs.zkverify_version != '' }}
         run: |
           ./setup.sh --fetch-latest --rebuild \
             --zkverify-branch ${{ inputs.zkverify_version || github.event.inputs.zkverify_version }} \
             --nh-attestation-bot-branch ${{ inputs.attestation_bot_branch || github.event.inputs.attestation_bot_branch }} \
-            --zkv-attestation-contracts-branch ${{ inputs.zkv_contracts_branch || github.event.inputs.zkv_contracts_branch }}
+            --zkv-attestation-contracts-branch ${{ inputs.zkv_contracts_branch || github.event.inputs.zkv_contracts_branch }} \
+            --docker-image-tag ${{ env.SANITIZED_ZKVERIFY_VERSION }}
         working-directory: src/e2e-tests
 
       - name: Run Setup Script (Clone Repositories & Pull zkVerify Docker Image)
@@ -143,6 +143,7 @@ jobs:
             --zkv-attestation-contracts-branch ${{ inputs.zkv_contracts_branch || github.event.inputs.zkv_contracts_branch }}
         working-directory: src/e2e-tests
 
+      ## revisit for both conditions
       - name: Set Up Docker Containers
         run: |
           docker compose down -v
