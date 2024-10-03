@@ -3,31 +3,31 @@ name: zkVerify E2E Tests
 on:
   workflow_dispatch:
     inputs:
-      zkverify_tag:
+      zkverify_docker_tag:
         description: "Docker image tag for zkverify"
-        default: "latest"
-      zkverify_branch:
-        description: "Branch for zkVerify repository"
-        default: "main"
+        type: string
+      zkverify_version:
+        description: "Commit hash or tag for zkVerify repository"
+        type: string
       attestation_bot_branch:
         description: "Branch for attestation bot"
+        required: false
+        type: string
         default: "main"
       zkv_contracts_branch:
         description: "Branch for zkv attestation contracts"
+        required: false
+        type: string
         default: "main"
 
   workflow_call:
     inputs:
-      zkverify_tag:
+      zkverify_docker_tag:
         description: "Docker image tag for zkverify"
-        required: false
         type: string
-        default: "latest"
-      zkverify_branch:
-        description: "Branch for zkVerify repository"
-        required: false
+      zkverify_version:
+        description: "Commit hash or tag for zkVerify repository"
         type: string
-        default: "main"
       attestation_bot_branch:
         description: "Branch for attestation bot"
         required: false
@@ -55,7 +55,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Check that only one input is provided for a zkVerify version
+        run: |
+          if [ "${{ inputs.zkverify_docker_tag }}" != "" ] && [ "${{ inputs.inputs.zkverify_version }}" != "" ]; then
+            echo "Error: Both zkverify_docker_tag and zkverify_version cannot be provided."
+            exit 1
+          elif [ "${{ inputs.zkverify_docker_tag }}" == "" ] && [ "${{ inputs.inputs.zkverify_version }}" == "" ]; then
+            echo "Error: Either zkverify_docker_tag or zkverify_version must be provided."
+            exit 1
+          else
+            echo "Validation passed. Proceeding with the workflow."
+
+      - name: Checkout Code
         uses: actions/checkout@v4
         with:
           repository: HorizenLabs/zkVerify-qa
@@ -68,7 +79,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: Cache npm cache
+      - name: Cache npm dependencies
         uses: actions/cache@v4
         with:
           path: ~/.npm
@@ -76,11 +87,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-npm-
 
-      - name: Remove existing node_modules
+      - name: Remove Existing node_modules
         run: rm -rf node_modules
         working-directory: src
 
-      - name: Install npm dependencies
+      - name: Install npm Dependencies
         run: npm ci
         working-directory: src
 
@@ -90,21 +101,53 @@ jobs:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
-      - name: Run setup script (git clone latest zkVerify & attestation-bot repos)
+      - name: Sanitize zkVerify_version
+        id: sanitize_version
+        if: ${{ inputs.zkverify_version != '' }}
+        run: |
+          # Determine the source of zkverify_version
+          VERSION="${{ inputs.zkverify_version || github.event.inputs.zkverify_version }}"
+
+          # Replace '/' with '-' and remove any other invalid characters for Docker tags
+          SANITIZED_VERSION=$(echo "$VERSION" | tr '/' '-' | sed 's/[^a-zA-Z0-9_.-]/-/g')
+
+          # Ensure the tag starts with a letter or number
+          SANITIZED_VERSION=$(echo "$SANITIZED_VERSION" | sed 's/^[^a-zA-Z0-9]/0&/')
+
+          # Truncate to 128 characters (Docker tag length limit)
+          SANITIZED_VERSION="${SANITIZED_VERSION:0:128}"
+
+          echo "SANITIZED_ZKVERIFY_VERSION=${SANITIZED_VERSION}" >> $GITHUB_ENV
+          echo "Sanitized zkverify_version: $SANITIZED_VERSION"
+
+      - name: Run Setup Script (Clone Repositories & Build zkVerify Docker Image)
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        if: ${{ inputs.zkverify_version != '' }}
+        run: |
+          ./setup.sh --fetch-latest --rebuild \
+            --zkverify-version ${{ inputs.zkverify_version || github.event.inputs.zkverify_version }} \
+            --nh-attestation-bot-branch ${{ inputs.attestation_bot_branch || github.event.inputs.attestation_bot_branch }} \
+            --zkv-attestation-contracts-branch ${{ inputs.zkv_contracts_branch || github.event.inputs.zkv_contracts_branch }} \
+            --docker-image-tag ${{ env.SANITIZED_ZKVERIFY_VERSION }}
+        working-directory: src/e2e-tests
+
+      - name: Run Setup Script (Clone Repositories & Pull zkVerify Docker Image)
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        if: ${{ inputs.zkverify_docker_tag != '' }}
         run: |
           ./setup.sh --fetch-latest \
-            --zkverify-branch ${{ inputs.zkverify_branch || github.event.inputs.zkverify_branch }} \
+            --docker-image-tag ${{ inputs.zkverify_docker_tag || github.event.inputs.zkverify_docker_tag }} \
             --nh-attestation-bot-branch ${{ inputs.attestation_bot_branch || github.event.inputs.attestation_bot_branch }} \
             --zkv-attestation-contracts-branch ${{ inputs.zkv_contracts_branch || github.event.inputs.zkv_contracts_branch }}
         working-directory: src/e2e-tests
 
-      - name: Set up Docker containers
+      - name: Set Up Docker Containers
         run: |
           docker compose down -v
-          ZKVERIFY_IMAGE_TAG=${{ inputs.zkverify_tag || github.event.inputs.zkverify_tag }} docker compose build --no-cache --pull
-          ZKVERIFY_IMAGE_TAG=${{ inputs.zkverify_tag || github.event.inputs.zkverify_tag }} docker compose up -d
+          ZKVERIFY_IMAGE_TAG=${{ env.SANITIZED_ZKVERIFY_VERSION || inputs.zkverify_docker_tag || github.event.inputs.zkverify_docker_tag }} docker compose build --no-cache
+          ZKVERIFY_IMAGE_TAG=${{ env.SANITIZED_ZKVERIFY_VERSION || inputs.zkverify_docker_tag || github.event.inputs.zkverify_docker_tag }} docker compose up -d
         working-directory: src/e2e-tests
 
       - name: Wait for Ethereum contract to be deployed
