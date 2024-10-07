@@ -57,22 +57,24 @@ jobs:
     steps:
       - name: Check that only one input is provided for a zkVerify version
         run: |
-          if [ "${{ inputs.zkverify_docker_tag }}" != "" ] && [ "${{ inputs.inputs.zkverify_version }}" != "" ]; then
+          if [ "${{ inputs.zkverify_docker_tag }}" != "" ] && [ "${{ inputs.zkverify_version }}" != "" ] && [ "${{ github.event.inputs.zkverify_docker_tag }}" != "" ] && [ "${{ github.event.inputs.zkverify_version }}" != "" ]; then
             echo "Error: Both zkverify_docker_tag and zkverify_version cannot be provided."
             exit 1
-          elif [ "${{ inputs.zkverify_docker_tag }}" == "" ] && [ "${{ inputs.inputs.zkverify_version }}" == "" ]; then
+          elif [ "${{ inputs.zkverify_docker_tag }}" == "" ] && [ "${{ inputs.zkverify_version }}" == "" ] && [ "${{ github.event.inputs.zkverify_docker_tag }}" == "" ] && [ "${{ github.event.inputs.zkverify_version }}" == "" ]; then
             echo "Error: Either zkverify_docker_tag or zkverify_version must be provided."
             exit 1
           else
             echo "Validation passed. Proceeding with the workflow."
+          fi
 
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
           repository: HorizenLabs/zkVerify-qa
-          ref: main
+          ref: yuriko/WEB3-927
           clean: true
           fetch-depth: 1
+          token: ${{ secrets.GH_TOKEN }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -142,6 +144,16 @@ jobs:
             --nh-attestation-bot-branch ${{ inputs.attestation_bot_branch || github.event.inputs.attestation_bot_branch }} \
             --zkv-attestation-contracts-branch ${{ inputs.zkv_contracts_branch || github.event.inputs.zkv_contracts_branch }}
         working-directory: src/e2e-tests
+
+      - name: Upload Docker Image Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zkverify-image
+          path: ${{github.workspace}}/src/e2e-tests/zkverify-image.tar
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+          overwrite: true
 
       - name: Set Up Docker Containers
         run: |
@@ -279,7 +291,6 @@ jobs:
           docker container prune -f
           docker network prune -f
           docker volume prune -f
-          docker image prune -a -f
           echo "Checking disk space..."
           df -h
           echo "Listing remaining Docker resources..."
