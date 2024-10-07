@@ -167,4 +167,7 @@ else
     fi
 fi
 
+# Save the Docker image as a tarball
+docker save "${image_name}:${docker_image_tag}" -o zkverify-image.tar
+
 echo "Setup completed."
