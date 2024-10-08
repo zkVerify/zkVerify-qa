@@ -59,10 +59,10 @@ jobs:
     steps:
       - name: Check that only one input is provided for a zkVerify version
         run: |
-          if [ "${{ inputs.zkverify_docker_tag }}" != "" ] && [ "${{ inputs.inputs.zkverify_version }}" != "" ] && [ "${{ github.event.inputs.zkverify_docker_tag }}" != "" ] && [ "${{ github.event.inputs.zkverify_version }}" != "" ]; then
+          if [ "${{ inputs.zkverify_docker_tag }}" != "" ] && [ "${{ inputs.zkverify_version }}" != "" ] && [ "${{ github.event.inputs.zkverify_docker_tag }}" != "" ] && [ "${{ github.event.inputs.zkverify_version }}" != "" ]; then
             echo "Error: Both zkverify_docker_tag and zkverify_version cannot be provided."
             exit 1
-          elif [ "${{ inputs.zkverify_docker_tag }}" == "" ] && [ "${{ inputs.inputs.zkverify_version }}" == "" ] && [ "${{ github.event.inputs.zkverify_docker_tag }}" == "" ] && [ "${{ github.event.inputs.zkverify_version }}" == "" ]; then
+          elif [ "${{ inputs.zkverify_docker_tag }}" == "" ] && [ "${{ inputs.zkverify_version }}" == "" ] && [ "${{ github.event.inputs.zkverify_docker_tag }}" == "" ] && [ "${{ github.event.inputs.zkverify_version }}" == "" ]; then
             echo "Error: Either zkverify_docker_tag or zkverify_version must be provided."
             exit 1
           else
