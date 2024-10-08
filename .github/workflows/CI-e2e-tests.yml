@@ -9,6 +9,7 @@ on:
       zkverify_version:
         description: "Commit hash or tag for zkVerify repository"
         type: string
+        default: "main"
       attestation_bot_branch:
         description: "Branch for attestation bot"
         required: false
@@ -28,6 +29,7 @@ on:
       zkverify_version:
         description: "Commit hash or tag for zkVerify repository"
         type: string
+        default: "main"
       attestation_bot_branch:
         description: "Branch for attestation bot"
         required: false
