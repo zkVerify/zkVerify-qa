@@ -67,7 +67,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: HorizenLabs/zkVerify-qa
-          ref: yuriko/WEB3-927-test
+          ref: yuriko/yuriko/WEB3-927-test
           clean: true
           fetch-depth: 1
           token: ${{ secrets.GH_TOKEN }}
@@ -87,7 +87,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: zkverify-image
-          path: ${{github.workspace}}/tmp/zkverify-image.tar
+          path: ${{github.workspace}}/src/e2e-tests/zkverify-image.tar
 
       - name: Download zkVerify Docker image artifact
         uses: actions/download-artifact@v4

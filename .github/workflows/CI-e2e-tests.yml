@@ -150,6 +150,10 @@ jobs:
         with:
           name: zkverify-image
           path: ${{github.workspace}}/src/e2e-tests/zkverify-image.tar
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+          overwrite: true
 
       - name: Set Up Docker Containers
         run: |
