@@ -73,7 +73,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: HorizenLabs/zkVerify-qa
-          ref: main
+          ref: yuriko/yuriko/WEB3-927-test
           clean: true
           fetch-depth: 1
           token: ${{ secrets.GH_TOKEN }}
@@ -129,11 +129,11 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         if: ${{ inputs.zkverify_version != '' }}
         run: |
-          ./setup.sh --fetch-latest --rebuild \
+          ./setup.sh --fetch-latest \
             --zkverify-version ${{ inputs.zkverify_version || github.event.inputs.zkverify_version }} \
             --nh-attestation-bot-branch ${{ inputs.attestation_bot_branch || github.event.inputs.attestation_bot_branch }} \
             --zkv-attestation-contracts-branch ${{ inputs.zkv_contracts_branch || github.event.inputs.zkv_contracts_branch }} \
-            --docker-image-tag ${{ env.SANITIZED_ZKVERIFY_VERSION }}
+            --docker-image-tag latest
         working-directory: src/e2e-tests
 
       - name: Run Setup Script (Clone Repositories & Pull zkVerify Docker Image)
@@ -149,11 +149,9 @@ jobs:
 
       - name: Upload Docker Image Artifact
         uses: actions/upload-artifact@v4
-        needs: Run Setup Script (Clone Repositories & Build zkVerify Docker Image)
         with:
           name: zkverify-image
-          path: zkverify-image.tar
-        working-directory: src/e2e-tests
+          path: ${{github.workspace}}/src/e2e-tests/zkverify-image.tar
 
       - name: Set Up Docker Containers
         run: |
@@ -297,7 +295,6 @@ jobs:
           docker container prune -f
           docker network prune -f
           docker volume prune -f
-          docker image prune -a -f
           echo "Checking disk space..."
           df -h
           echo "Listing remaining Docker resources..."

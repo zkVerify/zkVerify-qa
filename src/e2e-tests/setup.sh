@@ -1,8 +1,6 @@
 #!/bin/bash
 set -eou pipefail
 
-echo "${PWD}"
-
 # Default values
 rebuild=0
 fetch_latest=0
@@ -79,9 +77,7 @@ function build_zkverify_image() {
         exit 1
     fi
 
-    echo "${PWD}"
     cd ../..
-    echo "${PWD}"
 }
 
 # Check if running in GitHub Actions
@@ -178,7 +174,5 @@ check_local_image "$image_name" "$docker_image_tag"
 script_dir="$(dirname "$(realpath "$0")")"
 echo "Saving image ${image_name}:${docker_image_tag} to ${script_dir}/zkverify-image.tar"
 docker save "${image_name}:${docker_image_tag}" -o "${script_dir}/zkverify-image.tar"
-
-    echo "${PWD}"
 
 echo "Setup completed."
