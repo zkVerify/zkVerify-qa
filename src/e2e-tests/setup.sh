@@ -1,6 +1,8 @@
 #!/bin/bash
 set -eou pipefail
 
+echo "${PWD}"
+
 # Default values
 rebuild=0
 fetch_latest=0
@@ -56,6 +58,7 @@ function check_local_image() {
 
 function build_zkverify_image() {
     echo "Configuring and bootstrapping zkVerify..."
+    echo "${PWD}"
     cd services/zkVerify || exit 1
 
     # Source config
@@ -76,7 +79,9 @@ function build_zkverify_image() {
         exit 1
     fi
 
+    echo "${PWD}"
     cd ../..
+    echo "${PWD}"
 }
 
 # Check if running in GitHub Actions
@@ -156,9 +161,7 @@ if [[ "$rebuild" -eq 1 ]]; then
 
     build_zkverify_image
 else
-    if check_local_image "$image_name" "$docker_image_tag"; then
-        echo "Using locally available image ${image_name}:${docker_image_tag}."
-    elif check_docker_hub_image "$image_name" "$docker_image_tag"; then
+    if check_docker_hub_image "$image_name" "$docker_image_tag"; then
         echo "Using Docker Hub image ${image_name}:${docker_image_tag}."
         docker pull "${image_name}:${docker_image_tag}"
     else
@@ -167,9 +170,15 @@ else
     fi
 fi
 
+check_local_image "$image_name" "$docker_image_tag"
+
+    echo "${PWD}"
+
 # Save the Docker image as a tarball
 script_dir="$(dirname "$(realpath "$0")")"
 echo "Saving image ${image_name}:${docker_image_tag} to ${script_dir}/zkverify-image.tar"
 docker save "${image_name}:${docker_image_tag}" -o "${script_dir}/zkverify-image.tar"
+
+    echo "${PWD}"
 
 echo "Setup completed."
