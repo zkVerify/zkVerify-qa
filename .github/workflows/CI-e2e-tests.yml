@@ -76,6 +76,7 @@ jobs:
           ref: main
           clean: true
           fetch-depth: 1
+          token: ${{ secrets.GH_TOKEN }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -148,9 +149,11 @@ jobs:
 
       - name: Upload Docker Image Artifact
         uses: actions/upload-artifact@v4
+        needs: Run Setup Script (Clone Repositories & Build zkVerify Docker Image)
         with:
           name: zkverify-image
           path: zkverify-image.tar
+        working-directory: src/e2e-tests
 
       - name: Set Up Docker Containers
         run: |
@@ -279,6 +282,12 @@ jobs:
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.QA_SLACK_WEBHOOK_URL }}
           SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+
+      - name: Download zkVerify Docker image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: zkverify-image
+          path: /tmp
 
       - name: Cleanup Docker resources
         if: always()

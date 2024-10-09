@@ -1,0 +1,97 @@
+name: zkVerify E2E Tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      zkverify_docker_tag:
+        description: "Docker image tag for zkverify"
+        type: string
+      zkverify_version:
+        description: "Commit hash or tag for zkVerify repository"
+        type: string
+        default: "main"
+      attestation_bot_branch:
+        description: "Branch for attestation bot"
+        required: false
+        type: string
+        default: "main"
+      zkv_contracts_branch:
+        description: "Branch for zkv attestation contracts"
+        required: false
+        type: string
+        default: "main"
+
+  workflow_call:
+    inputs:
+      zkverify_docker_tag:
+        description: "Docker image tag for zkverify"
+        type: string
+      zkverify_version:
+        description: "Commit hash or tag for zkVerify repository"
+        type: string
+        default: "main"
+      attestation_bot_branch:
+        description: "Branch for attestation bot"
+        required: false
+        type: string
+        default: "main"
+      zkv_contracts_branch:
+        description: "Branch for zkv attestation contracts"
+        required: false
+        type: string
+        default: "main"
+    secrets:
+      DOCKER_HUB_USERNAME:
+        required: true
+      DOCKER_HUB_TOKEN:
+        required: true
+      GH_TOKEN:
+        required: true
+      QA_SLACK_WEBHOOK_URL:
+        required: true
+env:
+  NODE_VERSION: "20"
+
+jobs:
+  e2e-build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      # - run: mkdir -p path/to/artifact
+      # - run: echo hello > path/to/artifact/world.txt
+      # - uses: actions/upload-artifact@v4
+      #   with:
+      #     name: my-artifact
+      #     path: path/to/artifact/world.txt
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          repository: HorizenLabs/zkVerify-qa
+          ref: yuriko/WEB3-927-test
+          clean: true
+          fetch-depth: 1
+          token: ${{ secrets.GH_TOKEN }}
+   
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_TOKEN }}
+
+      - name: Run Setup Script (Clone Repositories & Build zkVerify Docker Image)
+        run: |
+          ./setup_copy.sh
+        working-directory: src/e2e-tests
+
+      - name: Upload Docker Image Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zkverify-image
+          path: ${{github.workspace}}/tmp/zkverify-image.tar
+
+      - name: Download zkVerify Docker image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: zkverify-image
+          path: /tmp
+
