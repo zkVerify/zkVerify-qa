@@ -54,17 +54,21 @@ jobs:
   e2e-build-and-test:
     runs-on: ubuntu-latest
 
+    outputs:
+      test_status: ${{ steps.parse_test_results.outputs.test_status }}
+
     steps:
       - name: Check that only one input is provided for a zkVerify version
         run: |
-          if [ "${{ inputs.zkverify_docker_tag }}" != "" ] && [ "${{ inputs.inputs.zkverify_version }}" != "" ]; then
+          if [ "${{ inputs.zkverify_docker_tag }}" != "" ] && [ "${{ inputs.zkverify_version }}" != "" ] && [ "${{ github.event.inputs.zkverify_docker_tag }}" != "" ] && [ "${{ github.event.inputs.zkverify_version }}" != "" ]; then
             echo "Error: Both zkverify_docker_tag and zkverify_version cannot be provided."
             exit 1
-          elif [ "${{ inputs.zkverify_docker_tag }}" == "" ] && [ "${{ inputs.inputs.zkverify_version }}" == "" ]; then
+          elif [ "${{ inputs.zkverify_docker_tag }}" == "" ] && [ "${{ inputs.zkverify_version }}" == "" ] && [ "${{ github.event.inputs.zkverify_docker_tag }}" == "" ] && [ "${{ github.event.inputs.zkverify_version }}" == "" ]; then
             echo "Error: Either zkverify_docker_tag or zkverify_version must be provided."
             exit 1
           else
             echo "Validation passed. Proceeding with the workflow."
+          fi
 
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -73,6 +77,7 @@ jobs:
           ref: main
           clean: true
           fetch-depth: 1
+          token: ${{ secrets.GH_TOKEN }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -143,6 +148,16 @@ jobs:
             --zkv-attestation-contracts-branch ${{ inputs.zkv_contracts_branch || github.event.inputs.zkv_contracts_branch }}
         working-directory: src/e2e-tests
 
+      - name: Upload Docker Image Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zkverify-image
+          path: ${{github.workspace}}/src/e2e-tests/zkverify-image.tar
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+          overwrite: true
+
       - name: Set Up Docker Containers
         run: |
           docker compose down -v
@@ -181,6 +196,7 @@ jobs:
         working-directory: src/e2e-tests
 
       - name: Parse Test Results
+        id: parse_test_results
         if: ${{ !cancelled() }}
         run: |
           TEST_OUTPUT=$(cat reports/test_output.txt || echo "")
@@ -243,6 +259,7 @@ jobs:
           echo "TOTAL=$TOTAL" >> $GITHUB_ENV
           echo "SUITE_FAILED=$SUITE_FAILED" >> $GITHUB_ENV
           echo "OVERALL_STATUS=$OVERALL_STATUS" >> $GITHUB_ENV
+          echo "test_status=$OVERALL_STATUS" >> $GITHUB_OUTPUT
           echo "OVERALL_STATUS_EMOJI=$OVERALL_STATUS_EMOJI" >> $GITHUB_ENV
           echo "SLACK_MESSAGE=$SLACK_MESSAGE" >> $GITHUB_ENV
 
@@ -279,7 +296,6 @@ jobs:
           docker container prune -f
           docker network prune -f
           docker volume prune -f
-          docker image prune -a -f
           echo "Checking disk space..."
           df -h
           echo "Listing remaining Docker resources..."
