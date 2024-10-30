@@ -15,6 +15,7 @@ When a new proof type is added to `zkverifyjs`:
 3. Add additional `SEED_PHRASE` variable to `.env.testnet.rpc`
 4. Search for `ADD_NEW_PROOF_TYPE` in the code and update the sections referenced
 5. Add new `QA_SEED_PHRASE_` variable to `.secrets`
+6. Add new `QA_SEED_PHRASE_` line to `name: Run RPC tests` section of `.github/workflows/CI-rpc-tests.yml`
 
 ## Send Proof
 
