@@ -16,6 +16,7 @@ When a new proof type is added to `zkverifyjs`:
 4. Search for `ADD_NEW_PROOF_TYPE` in the code and update the sections referenced
 5. Add new `QA_SEED_PHRASE_` variable to `.secrets`
 6. Add new `QA_SEED_PHRASE_` line to `name: Run RPC tests` section of `.github/workflows/CI-rpc-tests.yml`
+7. Add new `QA_SEED_PHRASE_` to GitHub `GitHub Settings > Secrets and variables > Actions > New Repository Secret`
 
 ## Send Proof
 

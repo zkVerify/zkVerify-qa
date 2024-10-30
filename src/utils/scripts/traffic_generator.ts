@@ -87,7 +87,7 @@ const main = async (): Promise<void> => {
             });
         } else {
             const { proof, publicSignals, vk } = loadProofData(proofType as ProofType);
-            proofTypes.push([proofType, { proof, publicSignals, vk }]);
+            proofTypes.push([proofType, { proof, publicSignals, vk}]);
         }
     });
 
