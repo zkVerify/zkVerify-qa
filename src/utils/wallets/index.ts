@@ -11,13 +11,17 @@ const proofTypeIndexMap: Record<ProofType, number> = {
     [ProofType.ultraplonk]: 1,
     [ProofType.risc0]: 2,
     [ProofType.fflonk]: 3,
-    [ProofType.groth16]: 4,
+    // ADD_NEW_PROOF_TYPE - groth16 should be last here.
+    [ProofType.proofofsql]: 4,
+    [ProofType.groth16]: 5,
 };
 
+// ADD_NEW_PROOF_TYPE
+// Must start from the number given to groth16 in proofTypeIndexMap
 const curveIndexMap: Record<Groth16CurveType, number> = {
-    [Groth16CurveType.bn128]: 4,
-    [Groth16CurveType.bn254]: 5,
-    [Groth16CurveType.bls12381]: 6,
+    [Groth16CurveType.bn128]: 5,
+    [Groth16CurveType.bn254]: 6,
+    [Groth16CurveType.bls12381]: 7,
 };
 
 /**
@@ -41,8 +45,9 @@ export async function createAndFundLocalTestWallets(): Promise<void> {
         const newSeedPhrases: string[] = [aliceSeedPhrase];
         const wallets = [alice];
 
-        // Generate 5 new wallets (total Alice + 5 = 6)
-        for (let i = 0; i < 5; i++) {
+        // ADD_NEW_PROOF_TYPE
+        // Generate 6 new wallets (total Alice + 6 = 7)
+        for (let i = 0; i < 6; i++) {
             const mnemonic = mnemonicGenerate();
             const newWallet = keyring.addFromUri(mnemonic);
             newSeedPhrases.push(mnemonic);
@@ -97,15 +102,15 @@ export async function createAndFundLocalTestWallets(): Promise<void> {
     }
 }
 
-
 export function getGlobalWalletData() {
     return localWalletData;
 }
-
+// ADD_NEW_PROOF_TYPE
+// Update references to max SEED_PHRASE_* as needed
 /**
  * Sets up and funds local test wallets if the `LOCAL_NODE` environment variable is set to `true`.
  * Otherwise, it checks for the existence of pre-configured wallets by ensuring that the required seed phrases
- * (SEED_PHRASE_1 to SEED_PHRASE_6) are available in the environment variables.
+ * (SEED_PHRASE_1 to SEED_PHRASE_7) are available in the environment variables.
  *
  * @throws {Error} If `LOCAL_NODE` is not set to `true` and one or more required seed phrases are missing from the environment variables.
  *
@@ -124,7 +129,8 @@ export const setupLocalOrExistingWallets = async (): Promise<void> => {
     } else {
         console.log('Using pre-configured wallets from environment variables.');
 
-        // Check if SEED_PHRASE_1 to SEED_PHRASE_6 are set
+        // ADD_NEW_PROOF_TYPE
+        // Check if SEED_PHRASE_1 to SEED_PHRASE_7 are set
         const requiredSeedPhrases = [
             'SEED_PHRASE_1',
             'SEED_PHRASE_2',
@@ -132,6 +138,7 @@ export const setupLocalOrExistingWallets = async (): Promise<void> => {
             'SEED_PHRASE_4',
             'SEED_PHRASE_5',
             'SEED_PHRASE_6',
+            'SEED_PHRASE_7',
         ];
 
         const missingVariables = requiredSeedPhrases.filter((envVar) => !process.env[envVar]);

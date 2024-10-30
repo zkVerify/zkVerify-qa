@@ -49,7 +49,12 @@ const sendProof = async (
         const { events, transactionResult } = await session
             [proofType]()
             .nonce(currentNonce)
-            .execute(proof, publicSignals, vk);
+            .execute({ proofData: {
+                proof: proof,
+                publicSignals: publicSignals,
+                vk: vk
+                }
+            });
 
         console.log(`Proof ${proofType} sent with nonce ${currentNonce}`);
         proofCounter[proofType]++;
