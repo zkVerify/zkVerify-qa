@@ -4,7 +4,19 @@ This repository contains quality assurance tools and tests for the zkVerify proj
 
 ## Supported Proofs
 
-The list of supported proofs can be found in [./src/config.ts](./src/config.ts), add new proof types here if needed.
+The list of supported proofs can be found within the zkverifyjs ProofType enum.
+
+## Adding new proof type
+
+When a new proof type is added to `zkverifyjs`:
+
+1. Update zkverifyjs package version to latest
+2. Add proof data file to `src/tests/common/data` give it the same name as it's given in ProofType enum.
+3. Add additional `SEED_PHRASE` variable to `.env.testnet.rpc`
+4. Search for `ADD_NEW_PROOF_TYPE` in the code and update the sections referenced
+5. Add new `QA_SEED_PHRASE_` variable to `.secrets`
+6. Add new `QA_SEED_PHRASE_` line to `name: Run RPC tests` section of `.github/workflows/CI-rpc-tests.yml`
+7. Add new `QA_SEED_PHRASE_` to GitHub `GitHub Settings > Secrets and variables > Actions > New Repository Secret`
 
 ## Send Proof
 

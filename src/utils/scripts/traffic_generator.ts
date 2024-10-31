@@ -49,7 +49,12 @@ const sendProof = async (
         const { events, transactionResult } = await session
             [proofType]()
             .nonce(currentNonce)
-            .execute(proof, publicSignals, vk);
+            .execute({ proofData: {
+                proof: proof,
+                publicSignals: publicSignals,
+                vk: vk
+                }
+            });
 
         console.log(`Proof ${proofType} sent with nonce ${currentNonce}`);
         proofCounter[proofType]++;
@@ -82,7 +87,7 @@ const main = async (): Promise<void> => {
             });
         } else {
             const { proof, publicSignals, vk } = loadProofData(proofType as ProofType);
-            proofTypes.push([proofType, { proof, publicSignals, vk }]);
+            proofTypes.push([proofType, { proof, publicSignals, vk}]);
         }
     });
 

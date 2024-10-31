@@ -32,6 +32,7 @@ jobs:
             -e SEED_PHRASE_4=${{ secrets.QA_SEED_PHRASE_4 }} \
             -e SEED_PHRASE_5=${{ secrets.QA_SEED_PHRASE_5 }} \
             -e SEED_PHRASE_6=${{ secrets.QA_SEED_PHRASE_6 }} \
+            -e SEED_PHRASE_7=${{ secrets.QA_SEED_PHRASE_7 }} \
             -v ${{ github.workspace }}/src/rpc-tests/reports:/usr/src/app/reports \
             rpc-tests:latest 2>&1 | tee src/rpc-tests/reports/test_output.txt
         working-directory: .

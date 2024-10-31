@@ -34,7 +34,13 @@ const main = async (): Promise<void> => {
         }
 
         console.log(`Sending ${proofType} proof to zkVerify for verification...`);
-        const { events, transactionResult } = await verificationCall.execute(proof, publicSignals, vk);
+        const { events, transactionResult } = await verificationCall.execute({
+            proofData: {
+                proof: proof,
+                publicSignals: publicSignals,
+                vk: vk
+            }
+        });
 
         let verifyStartTime = Date.now();
         events.on(ZkVerifyEvents.Broadcast, () => {
