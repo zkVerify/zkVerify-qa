@@ -11,17 +11,16 @@ const proofTypeIndexMap: Record<ProofType, number> = {
     [ProofType.ultraplonk]: 1,
     [ProofType.risc0]: 2,
     [ProofType.fflonk]: 3,
-    // ADD_NEW_PROOF_TYPE - groth16 should be last here.
+
     [ProofType.proofofsql]: 4,
+    // ADD_NEW_PROOF_TYPE - groth16 should be last index here to work with curveIndexMap
     [ProofType.groth16]: 5,
 };
 
-// ADD_NEW_PROOF_TYPE
-// Must start from the number given to groth16 in proofTypeIndexMap
 const curveIndexMap: Record<Groth16CurveType, number> = {
-    [Groth16CurveType.bn128]: 5,
-    [Groth16CurveType.bn254]: 6,
-    [Groth16CurveType.bls12381]: 7,
+    [Groth16CurveType.bn128]: proofTypeIndexMap[ProofType.groth16],
+    [Groth16CurveType.bn254]: proofTypeIndexMap[ProofType.groth16] + 1,
+    [Groth16CurveType.bls12381]: proofTypeIndexMap[ProofType.groth16] + 2,
 };
 
 /**
@@ -44,10 +43,8 @@ export async function createAndFundLocalTestWallets(): Promise<void> {
         const alice = keyring.addFromUri(aliceSeedPhrase);
         const newSeedPhrases: string[] = [aliceSeedPhrase];
         const wallets = [alice];
-
-        // ADD_NEW_PROOF_TYPE
-        // Generate 6 new wallets (total Alice + 6 = 7)
-        for (let i = 0; i < 6; i++) {
+        
+        for (let i = 0; i < Object.keys(proofTypeIndexMap).length + Object.keys(curveIndexMap).length - 2; i++) {
             const mnemonic = mnemonicGenerate();
             const newWallet = keyring.addFromUri(mnemonic);
             newSeedPhrases.push(mnemonic);
