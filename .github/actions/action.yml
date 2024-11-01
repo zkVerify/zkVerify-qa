@@ -51,11 +51,11 @@ runs:
 
     - name: Checkout Code
       uses: actions/checkout@v4
-      # with:
-      #   repository: HorizenLabs/zkVerify-qa
-      #   ref: main
-      #   clean: true
-      #   fetch-depth: 1
+      with:
+        repository: HorizenLabs/zkVerify-qa
+        ref: main
+        clean: true
+        fetch-depth: 1
       #   token: ${{ inputs.GH_TOKEN }} || ${{ secrets.GH_TOKEN }}
 
     - name: Set up Node.js
