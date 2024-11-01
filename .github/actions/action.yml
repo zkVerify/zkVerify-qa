@@ -51,16 +51,6 @@ runs:
           echo "Validation passed. Proceeding with the workflow."
         fi
 
-    - name: Check for token
-      run: |
-        if [ "${{ inputs.GH_TOKEN }}" != "" ]; then
-          echo "gh token provided as input ${{ inputs.GH_TOKEN }}"
-        elif [ "${{ secrets.GH_TOKEN }}" != "" ]; then
-          echo "gh token provided as secret"
-        else
-          echo "no gh token"
-        fi
-
     - name: Checkout Code
       uses: actions/checkout@v4
       with:
@@ -91,11 +81,11 @@ runs:
       run: npm ci
       working-directory: src
 
-    - name: Login to Docker Hub
-      uses: docker/login-action@v3
-      with:
-        username: ${{ secrets.DOCKER_HUB_USERNAME }}
-        password: ${{ secrets.DOCKER_HUB_TOKEN }}
+    # - name: Login to Docker Hub
+    #   uses: docker/login-action@v3
+    #   with:
+    #     username: ${{ secrets.DOCKER_HUB_USERNAME }}
+    #     password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
     - name: Sanitize zkVerify_version
       id: sanitize_version
@@ -117,8 +107,9 @@ runs:
         echo "Sanitized zkverify_version: $SANITIZED_VERSION"
 
     - name: Run Setup Script (Clone Repositories & Build zkVerify Docker Image)
+      id: setup_and_build_image
       env:
-        GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        GH_TOKEN: ${{ inputs.GH_TOKEN }}
       if: ${{ inputs.zkverify_version != '' }}
       run: |
         ./setup.sh --fetch-latest --rebuild \
@@ -128,9 +119,9 @@ runs:
           --docker-image-tag ${{ env.SANITIZED_ZKVERIFY_VERSION }}
       working-directory: src/e2e-tests
 
-    - name: Run Setup Script (Clone Repositories & Pull zkVerify Docker Image)
+    - name: Run Setup Script (Clone Repositories & Use existing zkVerify Docker Image)
       env:
-        GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        GH_TOKEN: ${{ inputs.GH_TOKEN }}
       if: ${{ inputs.zkverify_docker_tag != '' }}
       run: |
         ./setup.sh --fetch-latest \
@@ -140,6 +131,8 @@ runs:
       working-directory: src/e2e-tests
 
     - name: Upload Docker Image Artifact
+      needs: setup_and_build_image
+      if: ${{ inputs.zkverify_version != '' }}
       uses: actions/upload-artifact@v4
       with:
         name: zkverify-image
