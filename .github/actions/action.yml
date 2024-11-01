@@ -50,7 +50,14 @@ runs:
         fi
 
     - name: Check for token
-      run: echo "token = ${{ inputs.GH_TOKEN }} || ${{ secrets.GH_TOKEN }}"
+      run: |
+        if [ "${{ inputs.GH_TOKEN }}" != "" ]; then
+          echo "gh token provided as input"
+        elif [ "${{ secrets.GH_TOKEN }}" != "" ]; then
+          echo "gh token provided as secret"
+        else
+          echo "no gh token"
+        fi
 
     - name: Checkout Code
       uses: actions/checkout@v4
