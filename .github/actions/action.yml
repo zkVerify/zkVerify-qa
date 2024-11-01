@@ -17,8 +17,6 @@ inputs:
     required: false
     type: string
     default: "main"
-  GH_TOKEN:
-    type: string
 secrets:
   DOCKER_HUB_USERNAME:
     required: true
@@ -53,12 +51,12 @@ runs:
 
     - name: Checkout Code
       uses: actions/checkout@v4
-      with:
-        repository: HorizenLabs/zkVerify-qa
-        ref: main
-        clean: true
-        fetch-depth: 1
-        token: ${{ inputs.GH_TOKEN }} || ${{ secrets.GH_TOKEN }}
+      # with:
+      #   repository: HorizenLabs/zkVerify-qa
+      #   ref: main
+      #   clean: true
+      #   fetch-depth: 1
+      #   token: ${{ inputs.GH_TOKEN }} || ${{ secrets.GH_TOKEN }}
 
     - name: Set up Node.js
       uses: actions/setup-node@v4
