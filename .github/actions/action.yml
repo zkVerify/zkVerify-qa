@@ -17,7 +17,7 @@ inputs:
     required: false
     type: string
     default: "main"
-  GH_TOEN:
+  GH_TOKEN:
     type: string
 secrets:
   DOCKER_HUB_USERNAME:
