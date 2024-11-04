@@ -130,17 +130,17 @@ runs:
           --zkv-attestation-contracts-branch ${{ inputs.zkv_contracts_branch || github.event.inputs.zkv_contracts_branch }}
       working-directory: src/e2e-tests
 
-    - name: Upload Docker Image Artifact
-      needs: setup_and_build_image
-      if: ${{ inputs.zkverify_version != '' }}
-      uses: actions/upload-artifact@v4
-      with:
-        name: zkverify-image
-        path: ${{github.workspace}}/src/e2e-tests/zkverify-image.tar
-        if-no-files-found: error
-        retention-days: 1
-        compression-level: 0
-        overwrite: true
+    # - name: Upload Docker Image Artifact
+    #   needs: setup_and_build_image
+    #   if: ${{ inputs.zkverify_version != '' }}
+    #   uses: actions/upload-artifact@v4
+    #   with:
+    #     name: zkverify-image
+    #     path: ${{github.workspace}}/src/e2e-tests/zkverify-image.tar
+    #     if-no-files-found: error
+    #     retention-days: 1
+    #     compression-level: 0
+    #     overwrite: true
 
     - name: Set Up Docker Containers
       run: |
