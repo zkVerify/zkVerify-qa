@@ -55,7 +55,7 @@ runs:
       uses: actions/checkout@v4
       with:
         repository: HorizenLabs/zkVerify-qa
-        ref: main
+        ref: yuriko/WEB3-1182
         clean: true
         fetch-depth: 1
         token: ${{ inputs.GH_TOKEN }}
