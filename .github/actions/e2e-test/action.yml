@@ -32,11 +32,11 @@ secrets:
 env:
   NODE_VERSION: "20"
 
-outputs:
-  test_status: ${{ steps.parse_test_results.outputs.test_status }}
-
 runs:
   using: "composite"
+
+  outputs:
+    test_status: ${{ steps.parse_test_results.outputs.test_status }}
 
   steps:
     - name: Check that only one input is provided for a zkVerify version
