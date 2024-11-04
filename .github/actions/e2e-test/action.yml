@@ -17,9 +17,6 @@ inputs:
     required: false
     type: string
     default: "main"
-  GH_TOKEN:
-    type: string
-secrets:
   DOCKER_HUB_USERNAME:
     required: true
   DOCKER_HUB_TOKEN:
@@ -75,8 +72,8 @@ runs:
     - name: Login to Docker Hub
       uses: docker/login-action@v3
       with:
-        username: ${{ secrets.DOCKER_HUB_USERNAME }}
-        password: ${{ secrets.DOCKER_HUB_TOKEN }}
+        username: ${{ inputs.DOCKER_HUB_USERNAME }}
+        password: ${{ inputs.DOCKER_HUB_TOKEN }}
 
     - name: Sanitize zkVerify_version
       id: sanitize_version
@@ -248,7 +245,7 @@ runs:
             ]
           }
       env:
-        SLACK_WEBHOOK_URL: ${{ secrets.QA_SLACK_WEBHOOK_URL }}
+        SLACK_WEBHOOK_URL: ${{ inputs.QA_SLACK_WEBHOOK_URL }}
         SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
 
     # - name: Cleanup Docker resources
