@@ -32,11 +32,11 @@ secrets:
 env:
   NODE_VERSION: "20"
 
+outputs:
+  test_status: ${{ steps.parse_test_results.outputs.test_status }}
+
 runs:
   using: "composite"
-
-  outputs:
-    test_status: ${{ steps.parse_test_results.outputs.test_status }}
 
   steps:
     - name: Check that only one input is provided for a zkVerify version
@@ -50,15 +50,6 @@ runs:
         else
           echo "Validation passed. Proceeding with the workflow."
         fi
-
-    - name: Checkout Code
-      uses: actions/checkout@v4
-      with:
-        repository: HorizenLabs/zkVerify-qa
-        ref: yuriko/WEB3-1182
-        clean: true
-        fetch-depth: 1
-        token: ${{ inputs.GH_TOKEN }}
 
     - name: Set up Node.js
       uses: actions/setup-node@v4
