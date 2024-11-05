@@ -220,6 +220,7 @@ runs:
         echo "SUITE_FAILED=$SUITE_FAILED" >> $GITHUB_ENV
         echo "OVERALL_STATUS=$OVERALL_STATUS" >> $GITHUB_ENV
         echo "test_status=$OVERALL_STATUS" >> $GITHUB_OUTPUT
+        echo "::set-output name=test_status::$OVERALL_STATUS"
         echo "OVERALL_STATUS_EMOJI=$OVERALL_STATUS_EMOJI" >> $GITHUB_ENV
         echo "SLACK_MESSAGE=$SLACK_MESSAGE" >> $GITHUB_ENV
 
@@ -239,7 +240,7 @@ runs:
                 "type": "section",
                 "text": {
                   "type": "mrkdwn",
-                  "text": "${{ env.OVERALL_STATUS_EMOJI }} *zkVerify E2E TEST STATUS:* ${{ env.OVERALL_STATUS }} ${{ env.OVERALL_STATUS_EMOJI }}\n\n${{ env.SLACK_MESSAGE }}\n\n*Build URL:* <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|Click here to view the build>"
+                  "text": "${{ env.OVERALL_STATUS_EMOJI }} *yuriko test zkVerify E2E TEST STATUS:* ${{ env.OVERALL_STATUS }} ${{ env.OVERALL_STATUS_EMOJI }}\n\n${{ env.SLACK_MESSAGE }}\n\n*Build URL:* <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|Click here to view the build>"
                 }
               }
             ]
