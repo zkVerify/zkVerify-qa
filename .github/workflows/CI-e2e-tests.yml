@@ -55,7 +55,7 @@ env:
   NODE_VERSION: "20"
 
 jobs:
-  e2e-build-and-test-copy:
+  e2e-build-and-test:
     runs-on: ubuntu-latest
 
     outputs:
