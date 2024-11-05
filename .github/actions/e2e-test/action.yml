@@ -249,19 +249,19 @@ runs:
         SLACK_WEBHOOK_URL: ${{ inputs.QA_SLACK_WEBHOOK_URL }}
         SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
 
-    # - name: Cleanup Docker resources
-    #   if: always()
-    #   run: |
-    #     echo "Cleaning up Docker resources..."
-    #     docker compose -f docker-compose.yml down -v
-    #     docker container prune -f
-    #     docker network prune -f
-    #     docker volume prune -f
-    #     echo "Checking disk space..."
-    #     df -h
-    #     echo "Listing remaining Docker resources..."
-    #     docker ps -a
-    #     docker network ls
-    #     docker volume ls
-    #     docker images
-    #   working-directory: src/e2e-tests
+    - name: Cleanup Docker resources
+      if: always()
+      run: |
+        echo "Cleaning up Docker resources..."
+        docker compose -f docker-compose.yml down -v
+        docker container prune -f
+        docker network prune -f
+        docker volume prune -f
+        echo "Checking disk space..."
+        df -h
+        echo "Listing remaining Docker resources..."
+        docker ps -a
+        docker network ls
+        docker volume ls
+        docker images
+      working-directory: src/e2e-tests
