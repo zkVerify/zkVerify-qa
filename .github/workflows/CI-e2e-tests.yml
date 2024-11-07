@@ -68,7 +68,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: HorizenLabs/zkVerify-qa
-          ref: main
+          ref: yuriko/WEB3-1184-fix
           clean: true
           fetch-depth: 1
           token: ${{ secrets.GH_TOKEN }}

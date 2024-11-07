@@ -26,14 +26,14 @@ inputs:
   QA_SLACK_WEBHOOK_URL:
     required: true
 
+outputs:
+  test_status: ${{ steps.parse_test_results.outputs.test_status }}
+
 env:
   NODE_VERSION: "20"
 
 runs:
   using: "composite"
-
-  outputs:
-    test_status: ${{ steps.parse_test_results.outputs.test_status }}
 
   steps:
     - name: Check that only one input is provided for a zkVerify version
