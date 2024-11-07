@@ -31,6 +31,7 @@ on:
       zkverify_docker_tag:
         description: "Docker image tag for zkverify"
         type: string
+        default: "0.6.0"
       zkverify_version:
         description: "Commit hash or tag for zkVerify repository"
         type: string
