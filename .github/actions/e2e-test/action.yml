@@ -27,7 +27,8 @@ inputs:
     required: true
 
 outputs:
-  test_status: ${{ steps.parse_test_results.outputs.test_status }}
+  test_status: 
+    value: ${{ steps.parse_test_results.outputs.test_status }}
 
 env:
   NODE_VERSION: "20"
@@ -63,10 +64,12 @@ runs:
           ${{ runner.os }}-npm-
 
     - name: Remove Existing node_modules
+      shell: bash
       run: rm -rf node_modules
       working-directory: src
 
     - name: Install npm Dependencies
+      shell: bash
       run: npm ci
       working-directory: src
 
@@ -228,7 +231,6 @@ runs:
         echo "SUITE_FAILED=$SUITE_FAILED" >> $GITHUB_ENV
         echo "OVERALL_STATUS=$OVERALL_STATUS" >> $GITHUB_ENV
         echo "test_status=$OVERALL_STATUS" >> $GITHUB_OUTPUT
-        echo "::set-output name=test_status::$OVERALL_STATUS"
         echo "OVERALL_STATUS_EMOJI=$OVERALL_STATUS_EMOJI" >> $GITHUB_ENV
         echo "SLACK_MESSAGE=$SLACK_MESSAGE" >> $GITHUB_ENV
 
