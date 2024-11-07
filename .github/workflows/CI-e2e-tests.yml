@@ -9,6 +9,7 @@ on:
       zkverify_docker_tag:
         description: "Docker image tag for zkverify"
         type: string
+        default: "0.6.0"
       zkverify_version:
         description: "Commit hash or tag for zkVerify repository"
         type: string
@@ -87,7 +88,6 @@ jobs:
           zkverify_version: ${{ inputs.zkverify_version || github.event.inputs.zkverify_version }}
           attestation_bot_branch: ${{ inputs.attestation_bot_branch || github.event.inputs.attestation_bot_branch }}
           zkv_contracts_branch: ${{ inputs.zkv_contracts_branch || github.event.inputs.zkv_contracts_branch }}
-          artifact_name: ${{ inputs.artifact_name || github.event.artifact_name }}
           DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
           DOCKER_HUB_TOKEN: ${{ secrets.DOCKER_HUB_TOKEN }}
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
