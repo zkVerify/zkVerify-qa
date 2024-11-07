@@ -37,6 +37,7 @@ runs:
 
   steps:
     - name: Check that only one input is provided for a zkVerify version
+      shell: bash
       run: |
         if [ "${{ inputs.zkverify_docker_tag }}" != "" ] && [ "${{ inputs.zkverify_version }}" != "" ]; then
           echo "Error: Both zkverify_docker_tag and zkverify_version cannot be provided."
@@ -78,6 +79,7 @@ runs:
     - name: Sanitize zkVerify_version
       id: sanitize_version
       if: ${{ inputs.zkverify_version != '' }}
+      shell: bash
       run: |
         # Determine the source of zkverify_version
         VERSION="${{ inputs.zkverify_version }}"
@@ -99,6 +101,7 @@ runs:
       env:
         GH_TOKEN: ${{ inputs.GH_TOKEN }}
       if: ${{ inputs.zkverify_version != '' }}
+      shell: bash
       run: |
         ./setup.sh --fetch-latest --rebuild \
           --zkverify-version ${{ inputs.zkverify_version }} \
@@ -111,6 +114,7 @@ runs:
       env:
         GH_TOKEN: ${{ inputs.GH_TOKEN }}
       if: ${{ inputs.zkverify_docker_tag != '' }}
+      shell: bash
       run: |
         ./setup.sh --fetch-latest \
           --docker-image-tag ${{ inputs.zkverify_docker_tag }} \
@@ -119,6 +123,7 @@ runs:
       working-directory: src/e2e-tests
 
     - name: Set Up Docker Containers
+      shell: bash
       run: |
         docker compose down -v
         ZKVERIFY_IMAGE_TAG=${{ env.SANITIZED_ZKVERIFY_VERSION || inputs.zkverify_docker_tag }} docker compose build --no-cache
@@ -126,6 +131,7 @@ runs:
       working-directory: src/e2e-tests
 
     - name: Wait for Ethereum contract to be deployed
+      shell: bash
       run: |
         MAX_WAIT_TIME=300
         wait_time=0
@@ -150,6 +156,7 @@ runs:
 
     - name: Run E2E tests
       id: run_tests
+      shell: bash
       run: |
         mkdir -p reports
         npm --prefix ../../ run test:e2e 2>&1 | tee reports/test_output.txt
@@ -158,6 +165,7 @@ runs:
     - name: Parse Test Results
       id: parse_test_results
       if: ${{ !cancelled() }}
+      shell: bash
       run: |
         TEST_OUTPUT=$(cat reports/test_output.txt || echo "")
 
@@ -251,6 +259,7 @@ runs:
 
     - name: Cleanup Docker resources
       if: always()
+      shell: bash
       run: |
         echo "Cleaning up Docker resources..."
         docker compose -f docker-compose.yml down -v
