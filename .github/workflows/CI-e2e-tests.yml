@@ -1,9 +1,6 @@
 name: zkVerify E2E Tests
 
 on:
-  push:
-    branches:
-      - "yuriko/WEB3-1184-fix"
   workflow_dispatch:
     inputs:
       zkverify_docker_tag:
@@ -83,13 +80,10 @@ jobs:
         id: run-e2e-tests
         uses: ./.github/actions/e2e-test
         with:
-          zkverify_docker_tag: 0.6.0
-          attestation_bot_branch: main
-          zkv_contracts_branch: main
-          # zkverify_docker_tag: ${{ inputs.zkverify_docker_tag || github.event.inputs.docker_tag }}
+          zkverify_docker_tag: ${{ inputs.zkverify_docker_tag || github.event.inputs.docker_tag }}
           zkverify_version: ${{ inputs.zkverify_version || github.event.inputs.zkverify_version }}
-          # attestation_bot_branch: ${{ inputs.attestation_bot_branch || github.event.inputs.attestation_bot_branch }}
-          # zkv_contracts_branch: ${{ inputs.zkv_contracts_branch || github.event.inputs.zkv_contracts_branch }}
+          attestation_bot_branch: ${{ inputs.attestation_bot_branch || github.event.inputs.attestation_bot_branch }}
+          zkv_contracts_branch: ${{ inputs.zkv_contracts_branch || github.event.inputs.zkv_contracts_branch }}
           DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
           DOCKER_HUB_TOKEN: ${{ secrets.DOCKER_HUB_TOKEN }}
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
