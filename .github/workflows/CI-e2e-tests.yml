@@ -1,6 +1,9 @@
 name: zkVerify E2E Tests
 
 on:
+  push:
+    branches:
+      - "yuriko/WEB3-1184-fix"
   workflow_dispatch:
     inputs:
       zkverify_docker_tag:
