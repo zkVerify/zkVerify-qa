@@ -33,9 +33,9 @@ if [ ! -d ".git" ]; then
     git config user.name "Horizen Labs"
 fi
 
-# Install Solidity dependencies
-echo "Installing Solidity dependencies..."
-forge install OpenZeppelin/openzeppelin-contracts@v5.0.2 --no-commit
+# # Install Solidity dependencies
+# echo "Installing Solidity dependencies..."
+# forge install OpenZeppelin/openzeppelin-contracts@v5.0.2 --no-commit
 
 # Copy contracts to the src directory
 echo "Copying contracts to the src directory..."
