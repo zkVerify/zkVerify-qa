@@ -1,4 +1,5 @@
-FROM ghcr.io/foundry-rs/foundry
+ARG FOUNDRY_VERSION=nightly-471e4ac317858b3419faaee58ade30c0671021e0
+FROM ghcr.io/foundry-rs/foundry:${FOUNDRY_VERSION}
 
 # Set working directory
 WORKDIR /anvil
