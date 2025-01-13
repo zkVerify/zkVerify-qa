@@ -157,6 +157,9 @@ cargo clean
 docker system prune -a 
 ```
 
+## Run with act
+`act workflow_dispatch -j e2e-build-and-test --input zkverify_docker_tag="latest"`
+
 ## Notes: GitHub Actions
 
 - When running in GitHub Actions, set either `zkverify_docker_tag` to use a Docker image from Docker hub, or `zkverify_version` to build a Docker image from a specific branch/commit/tag.
