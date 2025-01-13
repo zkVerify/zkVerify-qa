@@ -1,4 +1,4 @@
-ARG FOUNDRY_VERSION=nightly-471e4ac317858b3419faaee58ade30c0671021e0
+ARG FOUNDRY_VERSION=stable
 FROM ghcr.io/foundry-rs/foundry:${FOUNDRY_VERSION}
 
 # Set working directory
