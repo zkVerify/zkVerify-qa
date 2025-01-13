@@ -79,8 +79,7 @@ services:
         condition: service_healthy
       local_node:
         condition: service_healthy
-    # restart: unless-stopped
-    restart: on-failure:50
+    restart: unless-stopped
     environment:
       - "DB_USER=${SUBQUERY_DB_USER}"
       - "DB_PASS=${SUBQUERY_DB_PASS}"
