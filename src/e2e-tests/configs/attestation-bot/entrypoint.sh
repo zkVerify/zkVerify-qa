@@ -9,8 +9,8 @@ BLOCKCHAIN_NODE_WS_URL="ws://local_node:9944"
 # JSON-RPC request to fetch the genesis hash (chainId)
 CHAIN_ID_REQUEST='{"id":1,"jsonrpc":"2.0","method":"chain_getBlockHash","params":[0]}'
 # Number of retries and interval between retries
-MAX_RETRIES=5
-RETRY_INTERVAL=2  # in seconds
+MAX_RETRIES=10
+RETRY_INTERVAL=5  # in seconds
 
 # Install websocat to /tmp if it doesn't exist already
 install_websocat() {
