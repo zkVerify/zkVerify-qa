@@ -94,7 +94,6 @@ services:
       - ./configs/attestation-bot/entrypoint.sh:/usr/local/bin/entrypoint.sh:ro
     entrypoint: [/usr/local/bin/entrypoint.sh]
     command:
-      - tail -f /dev/null
       - -f=/app
       - --network-endpoint=ws://local_node:9944
       - --db-schema=app
