@@ -5,7 +5,7 @@ FROM ghcr.io/foundry-rs/foundry:${FOUNDRY_VERSION}
 WORKDIR /anvil
 
 # Install required packages
-RUN apk --no-cache add curl jq
+RUN apk --no-cache add curl jq openssh-client
 
 # Copy entrypoint script and contracts
 COPY ./anvil/entrypoint.sh /anvil/entrypoint.sh
