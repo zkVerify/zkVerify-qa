@@ -36,7 +36,7 @@ fi
 # Install Solidity dependencies
 echo "Installing Solidity dependencies..."
 forge install OpenZeppelin/openzeppelin-contracts@v5.1.0 --no-commit
-forge install polytope-labs/ismp-solidity
+forge install polytope-labs/ismp-solidity --no-commit
 
 # Copy contracts to the src directory
 echo "Copying contracts to the src directory..."
