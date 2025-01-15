@@ -130,7 +130,7 @@ runs:
       run: |
         docker compose down -v
         ZKVERIFY_IMAGE_TAG=${{ env.SANITIZED_ZKVERIFY_VERSION || inputs.zkverify_docker_tag }} docker compose build --no-cache
-        ZKVERIFY_IMAGE_TAG=${{ env.SANITIZED_ZKVERIFY_VERSION || inputs.zkverify_docker_tag }} docker compose up -d || true
+        ZKVERIFY_IMAGE_TAG=${{ env.SANITIZED_ZKVERIFY_VERSION || inputs.zkverify_docker_tag }} docker compose up -d
       working-directory: src/e2e-tests
 
     - name: Wait for Ethereum contract to be deployed

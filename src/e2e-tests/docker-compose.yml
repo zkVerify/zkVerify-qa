@@ -104,9 +104,9 @@ services:
       - --debug
     healthcheck:
       test: [CMD, curl, -f, "http://subquery-node:${SUBQUERY_NODE_PORT}/ready"]
-      interval: 30s
+      interval: 3s
       timeout: 5s
-      retries: 100
+      retries: 10
 
   graphql-engine:
     image: subquerynetwork/subql-query:${SUBQL_QUERY_VERSION}
