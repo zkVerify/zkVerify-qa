@@ -35,8 +35,7 @@ fi
 
 # Install Solidity dependencies
 echo "Installing Solidity dependencies..."
-forge install OpenZeppelin/openzeppelin-contracts@v4.8.2 polytope-labs/solidity-merkle-trees polytope-labs/ismp-solidity --no-commit
-# forge install OpenZeppelin/openzeppelin-contracts@v4.8.2 polytope-labs/solidity-merkle-trees@bba5e02d11c168a8f335c8a33adf162f2b1baa53 --no-commit
+forge install OpenZeppelin/openzeppelin-contracts@v5.1.0 --no-commit
 
 # Copy contracts to the src directory
 echo "Copying contracts to the src directory..."
@@ -45,7 +44,7 @@ echo "Contracts copied successfully."
 
 # Build contracts
 echo "Building contracts..."
-forge build
+forge build --contracts src/ZkVerifyAttestation.sol
 
 # Compile and deploy contract
 echo "Compiling and deploying contract..."
