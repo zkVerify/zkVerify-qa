@@ -44,7 +44,7 @@ echo "Contracts copied successfully."
 
 # Build contracts
 echo "Building contracts..."
-forge build
+forge build --contracts src/ZkVerifyAttestation.sol
 
 # Compile and deploy contract
 echo "Compiling and deploying contract..."
