@@ -1,0 +1,34 @@
+config:
+  target: "http://127.0.0.1"  # Dummy target
+  phases:
+    - duration: 60
+      arrivalRate: 1
+  processor: "./processor.ts"
+  engines:
+    http: {}
+
+scenarios:
+  - name: "fflonk Transactions"
+    flow:
+      - log: "Starting proof transaction for fflonk"
+      - function: "sendProofTransaction_fflonk"
+
+#  - name: "Groth16 Transactions"
+#    flow:
+#      - log: "Starting proof transaction for groth16"
+#      - function: "sendProofTransaction_groth16"
+
+#  - name: "Risc0 Transactions"
+#    flow:
+#      - log: "Starting proof transaction for risc0"
+#      - function: "sendProofTransaction_risc0"
+#
+#  - name: "UltraPlonk Transactions"
+#    flow:
+#      - log: "Starting proof transaction for ultraplonk"
+#      - function: "sendProofTransaction_ultraplonk"
+#
+#  - name: "Proof of SQL Transactions"
+#    flow:
+#      - log: "Starting proof transaction for proofofsql"
+#      - function: "sendProofTransaction_proofofsql"

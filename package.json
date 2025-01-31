@@ -9,7 +9,8 @@
     "test:rpc:local": "cp .env.local.rpc .env && jest --config=jest.config.local.rpc.js --verbose",
     "test:rpc:testnet": "cp .env.testnet.rpc .env && jest --config=jest.config.testnet.rpc.js --forceExit --verbose",
     "generate:single:proof": "cp .env.generator .env && npx ts-node src/send-proof/index.ts",
-    "generate:proofs": "cp .env.generator .env && npx ts-node src/proof-generator/index.ts"
+    "generate:proofs": "cp .env.generator .env && npx ts-node src/proof-generator/index.ts",
+    "performance:test": "npx artillery run src/performance/artillery-config.yml"
   },
   "dependencies": {
     "@polkadot/api": "^11.0.3",
@@ -18,20 +19,24 @@
     "cli-color": "^2.0.4",
     "debug": "^4.3.4",
     "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "ioredis": "^5.4.2",
     "snarkjs": "^0.7.4",
     "web3": "^4.9.0",
     "yaml": "2.3.0",
-    "zkverifyjs": "^0.3.0"
+    "zkverifyjs": "0.6.0"
   },
   "devDependencies": {
     "@babel/preset-env": "7.21.5",
     "@babel/preset-typescript": "7.21.5",
     "@jest/globals": "29.5.0",
     "@types/debug": "^4.1.12",
+    "@types/express": "^5.0.0",
     "@types/jest": "^29.5.1",
     "@types/node": "20.1.1",
     "@types/snarkjs": "^0.7.8",
     "@types/web3": "^1.2.2",
+    "artillery": "^2.0.22",
     "babel-jest": "29.5.0",
     "bn.js": "^5.2.1",
     "canonical-weth": "^1.4.0",
