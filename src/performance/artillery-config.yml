@@ -3,20 +3,20 @@ config:
   phases:
     - duration: 60
       arrivalRate: 1
-  processor: "./processor.ts"
+  processor: "./processor.js"
   engines:
     http: {}
 
 scenarios:
-  - name: "fflonk Transactions"
-    flow:
-      - log: "Starting proof transaction for fflonk"
-      - function: "sendProofTransaction_fflonk"
+  # - name: "fflonk Transactions"
+  #   flow:
+  #     - log: "Starting proof transaction for fflonk"
+  #     - function: "sendProofTransaction_fflonk"
 
-#  - name: "Groth16 Transactions"
-#    flow:
-#      - log: "Starting proof transaction for groth16"
-#      - function: "sendProofTransaction_groth16"
+ - name: "Groth16 Transactions"
+   flow:
+     - log: "Starting proof transaction for groth16"
+     - function: "sendProofTransaction_groth16"
 
 #  - name: "Risc0 Transactions"
 #    flow:
