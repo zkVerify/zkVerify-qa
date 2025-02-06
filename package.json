@@ -10,6 +10,7 @@
     "test:rpc:testnet": "cp .env.testnet.rpc .env && jest --config=jest.config.testnet.rpc.js --forceExit --verbose",
     "generate:single:proof": "cp .env.generator .env && npx ts-node src/send-proof/index.ts",
     "generate:proofs": "cp .env.generator .env && npx ts-node src/proof-generator/index.ts",
+    "performance:fund-accounts": "npx ts-node src/performance/setup.ts",
     "performance:test": "npx artillery run src/performance/artillery-config.yml"
   },
   "dependencies": {
