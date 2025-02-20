@@ -25,7 +25,7 @@
     "snarkjs": "^0.7.4",
     "web3": "^4.9.0",
     "yaml": "2.3.0",
-    "zkverifyjs": "0.6.0"
+    "zkverifyjs": "file:./zkverifyjs-0.6.1.tgz"
   },
   "devDependencies": {
     "@babel/preset-env": "7.21.5",

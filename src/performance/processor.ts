@@ -1,3 +1,13 @@
+import { ProofType, zkVerifySession, Library, CurveType } from "zkverifyjs";
+import dotenv from "dotenv";
+import fs from "fs";
+import { Mutex } from "async-mutex";
+import { ApiPromise } from "@polkadot/api";
+import { BN } from "@polkadot/util";
+import type { AccountInfo } from "@polkadot/types/interfaces";
+
+dotenv.config();
+
 module.exports = {
     sendProofTransaction_fflonk,
     sendProofTransaction_groth16,
@@ -5,13 +15,6 @@ module.exports = {
     sendProofTransaction_ultraplonk,
     sendProofTransaction_proofofsql
 };
-
-import { ProofType, zkVerifySession, Library, CurveType } from "zkverifyjs";
-import dotenv from "dotenv";
-import fs from "fs";
-import { Mutex } from "async-mutex";
-
-dotenv.config();
 
 function requireEnvVar(name: string): string {
     const value = process.env[name];
@@ -24,36 +27,46 @@ function requireEnvVar(name: string): string {
 
 const ZKVERIFY_NETWORK = requireEnvVar("ZKVERIFY_NETWORK");
 const DATA_FOLDER = requireEnvVar("DATA_FOLDER");
-const PROOF_ACCOUNTS: Record<ProofType, string> = {
-    [ProofType.fflonk]: requireEnvVar("SEED_PHRASE_FFLONK"),
-    [ProofType.groth16]: requireEnvVar("SEED_PHRASE_GROTH16"),
-    [ProofType.risc0]: requireEnvVar("SEED_PHRASE_RISC0"),
-    [ProofType.ultraplonk]: requireEnvVar("SEED_PHRASE_ULTRAPLONK"),
-    [ProofType.proofofsql]: requireEnvVar("SEED_PHRASE_PROOFOFSQL"),
-};
+const FUNDED_ACCOUNTS_FILE = requireEnvVar("FUNDED_ACCOUNTS_FILE");
+
+if (!fs.existsSync(FUNDED_ACCOUNTS_FILE)) {
+    throw new Error(`❌ Missing funded accounts file: ${FUNDED_ACCOUNTS_FILE}`);
+}
+
+const fundedAccounts: { mnemonic: string; address: string }[] = JSON.parse(fs.readFileSync(FUNDED_ACCOUNTS_FILE, "utf-8"));
+let availableAccounts = [...fundedAccounts];
+const accountMutex = new Mutex();
 
 const nonceTracker: Record<string, number> = {};
 const nonceMutex = new Mutex();
 
-async function getInitialNonce(session: any, account: any, proofType: ProofType): Promise<number> {
-    return nonceMutex.runExclusive(async () => {
-        if (nonceTracker[proofType] === undefined) {
-            const initialNonce = await session.api.rpc.system.accountNextIndex(account.address);
-            nonceTracker[proofType] = initialNonce.toNumber();
-            console.log(`🔄 Fetched initial nonce for ${proofType}: ${nonceTracker[proofType]}`);
+async function getNextAccount(): Promise<{ mnemonic: string; address: string }> {
+    return accountMutex.runExclusive(() => {
+        if (availableAccounts.length === 0) {
+            console.log("♻️ All accounts used! Resetting account pool.");
+            availableAccounts = [...fundedAccounts];
         }
-        return nonceTracker[proofType];
+        return availableAccounts.shift()!;
     });
 }
 
-async function getNextNonce(proofType: ProofType): Promise<number> {
+async function getInitialNonce(api: ApiPromise, account: { address: string }): Promise<number> {
     return nonceMutex.runExclusive(async () => {
-        if (nonceTracker[proofType] === undefined) {
-            throw new Error(`❌ Nonce not initialized for ${proofType}`);
+        if (nonceTracker[account.address] === undefined) {
+            const accountInfo = (await api.query.system.account(account.address)) as unknown as AccountInfo;
+            nonceTracker[account.address] = new BN(accountInfo.nonce).toNumber();
+            console.log(`🔄 Initial nonce for ${account.address}: ${nonceTracker[account.address]}`);
         }
-        const currentNonce = nonceTracker[proofType];
-        nonceTracker[proofType] += 1;
-        return currentNonce;
+        return nonceTracker[account.address];
+    });
+}
+
+async function getNextNonce(account: { address: string }): Promise<number> {
+    return nonceMutex.runExclusive(() => {
+        if (nonceTracker[account.address] === undefined) {
+            throw new Error(`❌ Nonce not initialized for ${account.address}`);
+        }
+        return nonceTracker[account.address]++;
     });
 }
 
@@ -76,11 +89,7 @@ function selectProofExecution(session: any, proofType: ProofType, nonce: number)
 
 async function sendProofTransaction(proofType: ProofType) {
     console.log(`🚀 Sending transaction for proof type: ${proofType}`);
-    const seedPhrase = PROOF_ACCOUNTS[proofType];
-
-    if (!seedPhrase) {
-        throw new Error(`❌ Missing seed phrase for ${proofType}`);
-    }
+    const account = await getNextAccount();
 
     const proofFilePath = `${DATA_FOLDER}/${proofType}.json`;
     if (!fs.existsSync(proofFilePath)) {
@@ -90,12 +99,14 @@ async function sendProofTransaction(proofType: ProofType) {
 
     const session = await zkVerifySession.start()
         .Custom(ZKVERIFY_NETWORK)
-        .withAccount(seedPhrase);
+        .withAccount(account.mnemonic);
 
-    const sender = session.account!;
+    const accountInfo = await session.getAccountInfo();
+    const sender = accountInfo[0];
+    const api = session.api;
 
-    await getInitialNonce(session, sender, proofType);
-    const nonce = await getNextNonce(proofType);
+    await getInitialNonce(api, sender);
+    const nonce = await getNextNonce(sender);
 
     const proofExecution = selectProofExecution(session, proofType, nonce);
     const version = proofType === ProofType.risc0 ? "V1_0" : undefined;
@@ -109,8 +120,12 @@ async function sendProofTransaction(proofType: ProofType) {
         }
     });
 
-    await transactionResult;
-    console.log(`✅ Transaction executed successfully for ${proofType} (Nonce: ${nonce})`);
+    console.log(`✅ Transaction sent successfully for ${proofType} (Nonce: ${nonce})`);
+
+    await session.close();
+
+    // await transactionResult;
+    // console.log(`✅ Transaction executed & finalized for ${proofType} (Nonce: ${nonce})`);
 }
 
 async function sendProofTransaction_fflonk() {

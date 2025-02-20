@@ -9,9 +9,9 @@ import type { AccountInfo } from "@polkadot/types/interfaces";
 
 dotenv.config();
 
-const TOTAL_ACCOUNTS = 10;
-const INTERMEDIARY_COUNT = 2;
-const FUND_PER_ACCOUNT = 0.1;
+const TOTAL_ACCOUNTS = 1000;
+const INTERMEDIARY_COUNT = 10;
+const FUND_PER_ACCOUNT = 10;
 const MAX_PARALLEL_TXS = 10;
 const ZKVERIFY_NETWORK = process.env.ZKVERIFY_NETWORK;
 const FUNDING_SEED_PHRASE = process.env.FUNDING_SEED_PHRASE;
@@ -58,16 +58,22 @@ function convertToPlanck(amount: number): bigint {
 const nonceMutex = new Mutex();
 const nonceTracker: Record<string, number> = {};
 
+/**
+ * Fetch and track the nonce manually instead of relying on `accountNextIndex`
+ */
 async function getNonce(api: ApiPromise, sender: any): Promise<number> {
     return nonceMutex.runExclusive(async () => {
         if (nonceTracker[sender.address] === undefined) {
-            const nonceBN = await api.rpc.system.accountNextIndex(sender.address);
-            nonceTracker[sender.address] = new BN(nonceBN).toNumber();
+            const accountInfo = (await api.query.system.account(sender.address)) as unknown as AccountInfo;
+            nonceTracker[sender.address] = new BN(accountInfo.nonce).toNumber();
         }
         return nonceTracker[sender.address]++;
     });
 }
 
+/**
+ * Sends transactions in parallel but manages nonces manually.
+ */
 async function fundAccounts(
     api: ApiPromise,
     sender: any,
@@ -133,6 +139,8 @@ async function fundAccounts(
     const fundingAccount = keyring.addFromUri(FUNDING_SEED_PHRASE);
     const fundingBalance = (await api.query.system.account(fundingAccount.address)) as unknown as AccountInfo;
 
+    nonceTracker[fundingAccount.address] = new BN(fundingBalance.nonce).toNumber();
+
     const accountsPerIntermediary = Math.ceil(fundedAccountsList.length / INTERMEDIARY_COUNT);
     const fundingPerIntermediary = FUND_PER_ACCOUNT * (accountsPerIntermediary + 1);
 
@@ -154,6 +162,7 @@ async function fundAccounts(
     await Promise.all(
         intermediaries.map(async (intermediary, i) => {
             const sender = keyring.addFromUri(intermediary.mnemonic);
+            nonceTracker[sender.address] = 0;
             const batchAccounts = fundedAccountsList.slice(i * accountsPerIntermediary, (i + 1) * accountsPerIntermediary);
             await fundAccounts(api, sender, batchAccounts, FUND_PER_ACCOUNT, `Intermediary ${i + 1}`);
         })
