@@ -6,11 +6,12 @@ import fs from "fs";
 import path from "path";
 import { Mutex } from "async-mutex";
 import type { AccountInfo } from "@polkadot/types/interfaces";
+import { cryptoWaitReady } from "@polkadot/util-crypto";
 
 dotenv.config();
 
-const TOTAL_ACCOUNTS = 1000;
-const INTERMEDIARY_COUNT = 10;
+const TOTAL_ACCOUNTS = 10000;
+const INTERMEDIARY_COUNT = 100;
 const FUND_PER_ACCOUNT = 10;
 const MAX_PARALLEL_TXS = 10;
 const ZKVERIFY_NETWORK = process.env.ZKVERIFY_NETWORK;
@@ -22,6 +23,33 @@ if (!ZKVERIFY_NETWORK) throw new Error("ZKVERIFY_NETWORK not set in .env");
 
 if (!fs.existsSync(OUTPUT_DIR)) {
     fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+}
+
+async function connectToApi(retries = 5, delay = 5000): Promise<ApiPromise> {
+    for (let i = 0; i < retries; i++) {
+        try {
+            console.log(`Connecting to zkVerify network (attempt ${i + 1}/${retries})...`);
+
+            const provider = new WsProvider(ZKVERIFY_NETWORK, 100);
+            const api = await ApiPromise.create({ provider });
+
+            await api.isReady;
+
+            console.log("Successfully connected to zkVerify network!");
+            return api;
+        } catch (error) {
+            const err = error as Error;
+            console.error(`API connection failed: ${err.message}`);
+
+            if (i < retries - 1) {
+                console.log(`Retrying in ${delay / 1000} seconds...`);
+                await new Promise((resolve) => setTimeout(resolve, delay));
+            } else {
+                throw new Error(`Failed to connect after ${retries} attempts.`);
+            }
+        }
+    }
+    throw new Error("Unexpected connection failure.");
 }
 
 function getCurrentDate(): string {
@@ -72,7 +100,7 @@ async function getNonce(api: ApiPromise, sender: any): Promise<number> {
 }
 
 /**
- * Sends transactions in parallel but manages nonces manually.
+ * Sends transactions in parallel using batch transactions and manually handles nonces.
  */
 async function fundAccounts(
     api: ApiPromise,
@@ -88,28 +116,30 @@ async function fundAccounts(
         const batch = recipients.slice(i, i + MAX_PARALLEL_TXS);
         console.log(`${senderType} processing batch ${Math.floor(i / MAX_PARALLEL_TXS) + 1}/${Math.ceil(recipients.length / MAX_PARALLEL_TXS)}`);
 
-        await Promise.allSettled(
-            batch.map(async (account) => {
-                try {
-                    const nonce = await getNonce(api, sender);
-                    const tx = api.tx.balances.transferAllowDeath(account.address, amountToSend.toString());
+        try {
+            const nonce = await getNonce(api, sender);
 
-                    await new Promise<void>((resolve, reject) => {
-                        tx.signAndSend(sender, { nonce }, ({ status, dispatchError }) => {
-                            if (dispatchError) {
-                                console.error(`Failed TX: ${account.address} (Nonce: ${nonce}):`, dispatchError.toString());
-                                reject(dispatchError);
-                            } else if (status.isFinalized) {
-                                fundedAccounts.push(account);
-                                resolve();
-                            }
-                        });
-                    });
-                } catch (error) {
-                    console.error(`Error funding ${account.address}:`, error);
-                }
-            })
-        );
+            const txs = batch.map(account =>
+                api.tx.balances.transferAllowDeath(account.address, amountToSend.toString())
+            );
+
+            const batchTx = api.tx.utility.batch(txs);
+
+            await new Promise<void>((resolve, reject) => {
+                batchTx.signAndSend(sender, { nonce }, ({ status, dispatchError }) => {
+                    if (dispatchError) {
+                        console.error(`Failed batch TX (Nonce: ${nonce}):`, dispatchError.toString());
+                        reject(dispatchError);
+                    } else if (status.isFinalized) {
+                        fundedAccounts.push(...batch);
+                        resolve();
+                    }
+                });
+            });
+
+        } catch (error) {
+            console.error(`Error funding batch:`, error);
+        }
 
         console.log(`${senderType} waiting before next batch...`);
         await new Promise((resolve) => setTimeout(resolve, 500));
@@ -117,8 +147,7 @@ async function fundAccounts(
 }
 
 (async () => {
-    console.log("Connecting to zkVerify...");
-    const api = await ApiPromise.create({ provider: new WsProvider(ZKVERIFY_NETWORK) });
+    await cryptoWaitReady();
 
     console.log(`Generating ${TOTAL_ACCOUNTS} accounts...`);
     const allAccounts = Array.from({ length: TOTAL_ACCOUNTS }, () => {
@@ -134,6 +163,8 @@ async function fundAccounts(
     console.log(`Writing initial generated accounts to file`);
     fs.writeFileSync(OUTPUT_FILE, JSON.stringify(allAccounts, null, 2));
 
+    console.log("Connecting to zkVerify...");
+    const api = await connectToApi();
     console.log("Checking Funding Account balance...");
     const keyring = new Keyring({ type: "sr25519" });
     const fundingAccount = keyring.addFromUri(FUNDING_SEED_PHRASE);

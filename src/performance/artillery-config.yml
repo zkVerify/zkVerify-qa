@@ -12,3 +12,28 @@ scenarios:
     flow:
       - log: "Starting proof transaction for fflonk"
       - function: "sendProofTransaction_fflonk"
+
+#  - name: "groth16 Transactions"
+#    flow:
+#      - log: "Starting proof transaction for groth16"
+#      - function: "sendProofTransaction_groth16"
+#
+#  - name: "risc0 Transactions"
+#    flow:
+#      - log: "Starting proof transaction for risc0"
+#      - function: "sendProofTransaction_risc0"
+#
+#  - name: "ultraplonk Transactions"
+#    flow:
+#      - log: "Starting proof transaction for ultraplonk"
+#      - function: "sendProofTransaction_ultraplonk"
+#
+#  - name: "proofofsql Transactions"
+#    flow:
+#      - log: "Starting proof transaction for proofofsql"
+#      - function: "sendProofTransaction_proofofsql"
+#
+#  - name: "All Proof Transactions"
+#    flow:
+#      - log: "Starting one transaction per proof type in parallel"
+#      - function: "sendAllProofs"

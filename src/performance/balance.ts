@@ -4,8 +4,8 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const ZKVERIFY_NETWORK = "";
-const SEED_PHRASE = "";
+const ZKVERIFY_NETWORK = 'wss://st-devnet-rpc.zkverify.io';
+const SEED_PHRASE = 'my seed';
 
 async function getBalance(seed: string) {
     const api = await ApiPromise.create({ provider: new WsProvider(ZKVERIFY_NETWORK) });
@@ -15,8 +15,8 @@ async function getBalance(seed: string) {
     const accountInfo = await api.query.system.account(account.address);
     const freeBalance = new BN((accountInfo as any).data.free.toString());
 
-    console.log(`🔍 Address: ${account.address}`);
-    console.log(`💰 Balance: ${freeBalance.div(new BN(10).pow(new BN(18))).toString()} tokens`);
+    console.log(`Address: ${account.address}`);
+    console.log(`Balance: ${freeBalance.div(new BN(10).pow(new BN(18))).toString()} tokens`);
 
     await api.disconnect();
 }
