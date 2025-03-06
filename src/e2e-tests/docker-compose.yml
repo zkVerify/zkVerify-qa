@@ -171,3 +171,20 @@ services:
       graphql-engine:
         condition: service_healthy
     command: ["/bin/sh", "/app/start_bot.sh"]
+
+  aggregation-app:
+    build:
+      context: ./services/zkverify-aggregation
+      dockerfile: Dockerfile
+    environment:
+      - AGGREGATOR_PROVIDER_WS=${AGGREGATOR_PROVIDER_WS}
+      - AGGREGATOR_SENDER_CREDENTIALS=${AGGREGATOR_SENDER_CREDENTIALS}
+    env_file:
+      - .env
+    depends_on:
+      local_node:
+        condition: service_healthy
+      node_alice:
+        condition: service_started
+      node_bob:
+        condition: service_started
