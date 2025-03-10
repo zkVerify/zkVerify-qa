@@ -33,6 +33,12 @@ jobs:
             -e SEED_PHRASE_5=${{ secrets.QA_SEED_PHRASE_5 }} \
             -e SEED_PHRASE_6=${{ secrets.QA_SEED_PHRASE_6 }} \
             -e SEED_PHRASE_7=${{ secrets.QA_SEED_PHRASE_7 }} \
+            -e SEED_PHRASE_7=${{ secrets.QA_SEED_PHRASE_8 }} \
+            -e SEED_PHRASE_7=${{ secrets.QA_SEED_PHRASE_9 }} \
+            -e SEED_PHRASE_7=${{ secrets.QA_SEED_PHRASE_10 }} \
+            -e SEED_PHRASE_7=${{ secrets.QA_SEED_PHRASE_11 }} \
+            -e SEED_PHRASE_7=${{ secrets.QA_SEED_PHRASE_12 }} \
+            -e SEED_PHRASE_7=${{ secrets.QA_SEED_PHRASE_13 }} \
             -v ${{ github.workspace }}/src/rpc-tests/reports:/usr/src/app/reports \
             rpc-tests:latest 2>&1 | tee src/rpc-tests/reports/test_output.txt
         working-directory: .
