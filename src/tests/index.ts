@@ -1,115 +1,186 @@
-import { performVerifyTransaction, performVKRegistrationAndVerification, loadProofData } from './common/utils';
-import { ProofType, Groth16CurveType } from 'zkverifyjs';
-import { getSeedPhrase } from "../utils/wallets";
+import {
+    loadProofAndVK,
+    performVerifyTransaction,
+    performVKRegistrationAndVerification
+} from "./common/utils";
+import { walletPool } from "../utils/wallets/walletPool";
+import { zkVerifySession, CurveType, Library, ProofOptions, ProofType, proofConfigurations } from "zkverifyjs";
 
-const proofTypes = Object.keys(ProofType).map(key => ProofType[key as keyof typeof ProofType]);
-const curveTypes = Object.keys(Groth16CurveType).map(key => Groth16CurveType[key as keyof typeof Groth16CurveType]);
+//TODO: Update this once we have V1_1 test data
+const proofTypeVersionExclusions: Partial<Record<ProofType, string[]>> = {
+    [ProofType.risc0]: ["V1_1"]
+};
+
+const logTestDetails = (proofOptions: ProofOptions, testType: string, version?: string) => {
+    const { proofType, library, curve } = proofOptions;
+    const details = [library && `library: ${library}`, curve && `curve: ${curve}`].filter(Boolean).join(", ");
+    console.log(`Running ${testType} for ${proofType}${version ? `:${version}` : ""}${details ? ` with ${details}` : ""}`);
+};
 
 export const runVerifyTest = async (
-    proofType: ProofType,
+    session: zkVerifySession,
+    proofOptions: ProofOptions,
     withAttestation: boolean = false,
     checkExistence: boolean = false,
-    curve?: Groth16CurveType,
-    isLocalNode: boolean = false,
-    runInParallel: boolean = false
-): Promise<void> => {
-    const seedPhrase = getSeedPhrase(proofType, curve, isLocalNode, runInParallel);
-    console.log(`Running ${proofType} test${curve ? ` with curve: ${curve}` : ''}`);
+    version?: string
+) => {
+    let seedPhrase: string | undefined;
+    let envVar: string | undefined;
 
-    const { proof, publicSignals, vk } = loadProofData(proofType, curve);
+    try {
+        [envVar, seedPhrase] = await walletPool.acquireWallet();
+        logTestDetails(proofOptions, "verification test", version);
 
-    await performVerifyTransaction(seedPhrase, proofType, proof, publicSignals, vk, withAttestation, checkExistence, curve);
+        const accountAddress = await session.addAccount(seedPhrase);
+        const { proof, vk } = loadProofAndVK(proofOptions, version);
+
+        await performVerifyTransaction(
+            session,
+            accountAddress,
+            proofOptions,
+            proof.proof,
+            proof.publicSignals,
+            vk,
+            withAttestation,
+            checkExistence,
+            version
+        );
+    } catch (error) {
+        console.error(`Error during runVerifyTest (${envVar}) for ${proofOptions.proofType}:`, error);
+        throw error;
+    } finally {
+        if (envVar) {
+            await walletPool.releaseWallet(envVar);
+        }
+    }
 };
 
 export const runVKRegistrationTest = async (
-    proofType: ProofType,
-    curve?: Groth16CurveType,
-    isLocalNode: boolean = false,
-    runInParallel: boolean = false
-): Promise<void> => {
-    const seedPhrase = getSeedPhrase(proofType, curve, isLocalNode, runInParallel);
-    console.log(`Running VK registration for ${proofType} test${curve ? ` with curve: ${curve}` : ''}`);
+    session: zkVerifySession,
+    proofOptions: ProofOptions,
+    version?: string
+) => {
+    let seedPhrase: string | undefined;
+    let envVar: string | undefined;
 
-    const { proof, publicSignals, vk } = loadProofData(proofType, curve);
+    try {
+        [envVar, seedPhrase] = await walletPool.acquireWallet();
+        logTestDetails(proofOptions, "VK registration");
 
-    await performVKRegistrationAndVerification(seedPhrase, proofType, proof, publicSignals, vk);
-};
+        const accountAddress = await session.addAccount(seedPhrase);
+        const { proof, vk } = loadProofAndVK(proofOptions, version);
 
-export const runProofWithoutAttestation = async (isLocalNode: boolean = false, runInParallel: boolean = false): Promise<void> => {
-    if (runInParallel) {
-        await Promise.allSettled(
-            proofTypes.map(proofType => {
-                console.log(`Running Proof Type: ${proofType}`);
-                if (proofType === ProofType.groth16) {
-                    return Promise.allSettled(
-                        curveTypes.map(curve => runVerifyTest(proofType, false, false, curve, isLocalNode, runInParallel))
-                    );
-                } else {
-                    return runVerifyTest(proofType, false, false, undefined, isLocalNode, runInParallel);
-                }
-            })
+        await performVKRegistrationAndVerification(
+            session,
+            accountAddress,
+            proofOptions,
+            proof.proof,
+            proof.publicSignals,
+            vk,
+            version
         );
-    } else {
-        for (const proofType of proofTypes) {
-            if (proofType === ProofType.groth16) {
-                for (const curve of curveTypes) {
-                    await runVerifyTest(proofType, false, false, curve, runInParallel);
-                }
-            } else {
-                await runVerifyTest(proofType, false, false, undefined, runInParallel);
-            }
+    } catch (error) {
+        console.error(`Error during runVKRegistrationTest (${envVar}) for ${proofOptions.proofType}:`, error);
+        throw error;
+    } finally {
+        if (envVar) {
+            await walletPool.releaseWallet(envVar);
         }
     }
 };
 
-export const runProofWithAttestation = async (isLocalNode: boolean = false, runInParallel: boolean = false): Promise<void> => {
-    if (runInParallel) {
-        await Promise.allSettled(
-            proofTypes.map(proofType => {
-                if (proofType === ProofType.groth16) {
-                    return Promise.allSettled(
-                        curveTypes.map(curve => runVerifyTest(proofType, true, true, curve, isLocalNode, runInParallel))
-                    );
-                } else {
-                    return runVerifyTest(proofType, true, true, undefined, isLocalNode, runInParallel);
-                }
-            })
+const generateTestPromises = (
+    proofTypes: ProofType[],
+    curveTypes: CurveType[],
+    libraries: Library[],
+    runTest: (proofOptions: ProofOptions, version?: string) => Promise<void>
+): Promise<void>[] => {
+    const promises: Promise<void>[] = [];
+
+    proofTypes.forEach((proofType) => {
+        const config = proofConfigurations[proofType];
+        const supportedVersions = config.supportedVersions;
+        const excludedVersions = proofTypeVersionExclusions[proofType] || [];
+
+        const versionsToUse = supportedVersions.filter(
+            (version) => !(excludedVersions && excludedVersions.includes(version))
         );
-    } else {
-        for (const proofType of proofTypes) {
-            if (proofType === ProofType.groth16) {
-                for (const curve of curveTypes) {
-                    await runVerifyTest(proofType, true, true, curve, isLocalNode, runInParallel);
+
+        if (versionsToUse.length > 0) {
+            versionsToUse.forEach((version) => {
+                if (config.requiresCurve && config.requiresLibrary) {
+                    libraries.forEach((library) => {
+                        curveTypes.forEach((curve) => {
+                            promises.push(runTest({ proofType, curve, library }, version));
+                        });
+                    });
+                } else {
+                    promises.push(runTest({ proofType }, version));
                 }
+            });
+        } else {
+            if (config.requiresCurve && config.requiresLibrary) {
+                libraries.forEach((library) => {
+                    curveTypes.forEach((curve) => {
+                        promises.push(runTest({ proofType, curve, library }));
+                    });
+                });
             } else {
-                await runVerifyTest(proofType, true, true, undefined, isLocalNode, runInParallel);
+                promises.push(runTest({ proofType }));
             }
+        }
+    });
+
+    return promises;
+};
+
+export const runAllProofTests = async (
+    proofTypes: ProofType[],
+    curveTypes: CurveType[],
+    libraries: Library[],
+    withAttestation: boolean
+) => {
+    let session: zkVerifySession | undefined;
+
+    try {
+        session = await zkVerifySession.start().Custom(process.env.WEBSOCKET).readOnly();
+
+        const testPromises = generateTestPromises(proofTypes, curveTypes, libraries, (proofOptions, version) =>
+            runVerifyTest(session!, proofOptions, withAttestation, false, version)
+        );
+
+        const results = await Promise.allSettled(testPromises);
+        const failures = results.filter(result => result.status === 'rejected');
+
+        if (failures.length > 0) {
+            throw new Error(`${failures.length} test(s) failed. See logs for details.`);
+        }
+    } catch (error) {
+        console.error("Error running all proof tests:", error);
+        throw error;
+    } finally {
+        if (session) {
+            await session.close();
         }
     }
 };
 
-export const runVKRegistrationTests = async (isLocalNode: boolean = false, runInParallel: boolean = false): Promise<void> => {
-    if (runInParallel) {
-        await Promise.allSettled(
-            proofTypes.map(proofType => {
-                if (proofType === ProofType.groth16) {
-                    return Promise.allSettled(
-                        curveTypes.map(curve => runVKRegistrationTest(proofType, curve, isLocalNode, runInParallel))
-                    );
-                } else {
-                    return runVKRegistrationTest(proofType, undefined, isLocalNode, runInParallel);
-                }
-            })
+export const runAllVKRegistrationTests = async (
+    proofTypes: ProofType[],
+    curveTypes: CurveType[],
+    libraries: Library[]
+) => {
+    const session = await zkVerifySession.start().Custom(process.env.WEBSOCKET).readOnly();
+
+    try {
+        const testPromises = generateTestPromises(proofTypes, curveTypes, libraries, (proofOptions, version) =>
+            runVKRegistrationTest(session, proofOptions, version)
         );
-    } else {
-        for (const proofType of proofTypes) {
-            if (proofType === ProofType.groth16) {
-                for (const curve of curveTypes) {
-                    await runVKRegistrationTest(proofType, curve, runInParallel);
-                }
-            } else {
-                await runVKRegistrationTest(proofType, undefined, runInParallel);
-            }
+        await Promise.all(testPromises);
+    } finally {
+        if (session) {
+            await session.close();
         }
     }
 };
+

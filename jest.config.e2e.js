@@ -17,6 +17,8 @@ const config = {
   testPathIgnorePatterns: [
     '<rootDir>/e2e-tests/services/'
   ],
+  globalSetup: '<rootDir>/jest.setup.js',
+  globalTeardown: '<rootDir>/jest.teardown.js',
 };
 
 module.exports = config;

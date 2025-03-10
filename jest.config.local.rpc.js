@@ -23,6 +23,8 @@ const config = {
   },
   preset: 'ts-jest',
   testEnvironment: 'node',
+  globalSetup: '<rootDir>/jest.setup.js',
+  globalTeardown: '<rootDir>/jest.teardown.js',
 };
 
 function getReportPath(testEnv) {
