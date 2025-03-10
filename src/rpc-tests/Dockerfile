@@ -8,6 +8,8 @@ COPY .env.testnet.rpc ./
 COPY jest.config.local.rpc.js ./
 COPY jest.config.testnet.rpc.js ./
 COPY tsconfig.json ./
+COPY jest.setup.js ./
+COPY jest.teardown.js ./
 COPY zkverifyjs-0.7.0.tgz ./
 
 RUN npm install
