@@ -1,4 +1,4 @@
-import { calculateWalletCountFromProofConfigurations } from "./walletCount";
+const { calculateWalletCountFromProofConfigurations } = require ( "./walletCount");
 const { ApiPromise, Keyring, WsProvider } = require('@polkadot/api');
 const { cryptoWaitReady, mnemonicGenerate } = require('@polkadot/util-crypto');
 

@@ -10,12 +10,11 @@ COPY jest.config.testnet.rpc.js ./
 COPY tsconfig.json ./
 COPY jest.setup.js ./
 COPY jest.teardown.js ./
-COPY zkverifyjs-0.7.0.tgz ./
 
 RUN npm install
 
 COPY src/rpc-tests ./src/rpc-tests
-COPY src/utils /usr/src/app/src/utils
+COPY src/utils ./src/utils
 COPY src/tests ./src/tests
 
 EXPOSE 3000

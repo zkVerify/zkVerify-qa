@@ -23,8 +23,6 @@ async function initializeWallets() {
             .filter(([key]) => key.startsWith('SEED_PHRASE'))
             .forEach(([key, seed]) => wallets.set(key, seed));
     }
-
-    console.log("Final Wallets Map:", wallets);
 }
 
 fastify.get('/wallet', async (request, reply) => {

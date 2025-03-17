@@ -6,7 +6,7 @@ let walletServerProcess;
 module.exports = async () => {
     console.log("Starting wallet server for Jest tests...");
 
-    walletServerProcess = spawn('node', [path.resolve(__dirname, 'src/utils/walletServer.js')], {
+    walletServerProcess = spawn('node', [path.resolve(__dirname, 'src/utils/wallets/walletServer.js')], {
         stdio: 'inherit',
         env: process.env,
     });

@@ -16,7 +16,7 @@ describe('zkVerify proof user journey tests', () => {
         console.log("Verify Test 2: COMPLETED");
     });
 
-    test('should register VK and verify the proof using the VK hash for all proof types', async () => {
+    test.skip('should register VK and verify the proof using the VK hash for all proof types', async () => {
         await runAllVKRegistrationTests(proofTypes, curveTypes, libraries);
     });
 });

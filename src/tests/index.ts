@@ -4,7 +4,8 @@ import {
     performVKRegistrationAndVerification
 } from "./common/utils";
 import { walletPool } from "../utils/wallets/walletPool";
-import { zkVerifySession, CurveType, Library, ProofOptions, ProofType, proofConfigurations } from "zkverifyjs";
+import { zkVerifySession, CurveType, Library, ProofOptions, ProofType } from "zkverifyjs";
+import { proofConfigurations } from "./common/config";
 
 //TODO: Update this once we have V1_1 test data
 const proofTypeVersionExclusions: Partial<Record<ProofType, string[]>> = {
