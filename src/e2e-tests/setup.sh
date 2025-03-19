@@ -113,7 +113,11 @@ for ((i=0; i<repo_count; i++)); do
         echo "Directory $target_dir already exists."
         if [ "$fetch_latest" -eq 1 ]; then
             echo "Fetching latest for $repo..."
-            (cd "$target_dir" && git fetch --all)
+            (
+                cd "$target_dir"
+                git fetch --all
+                git pull --ff-only
+            )
         else
             echo "Skipping update for $repo."
         fi
