@@ -7,6 +7,7 @@ fetch_latest=0
 zkverify_version="main"
 nh_attestation_bot_branch="main"
 zkv_attestation_contracts_branch="main"
+zkverify_aggregation_branch="main"
 docker_image_tag="latest"
 
 # Command-line options
@@ -17,6 +18,7 @@ while [[ "$#" -gt 0 ]]; do
         --zkverify-version) zkverify_version="$2"; shift ;;
         --nh-attestation-bot-branch) nh_attestation_bot_branch="$2"; shift ;;
         --zkv-attestation-contracts-branch) zkv_attestation_contracts_branch="$2"; shift ;;
+        --zkverify-aggregation) zkverify_aggregation_branch="$2"; shift ;;
         --docker-image-tag) docker_image_tag="$2"; shift ;;
         *) echo "Unknown parameter passed: $1"; exit 1 ;;
     esac
@@ -25,8 +27,8 @@ done
 
 # Repositories
 repo_names=("zkVerify" "nh-attestation-bot" "zkv-attestation-contracts")
-repo_urls=("https://github.com/HorizenLabs/zkVerify.git" "https://github.com/HorizenLabs/NH-attestation-bot.git" "https://github.com/HorizenLabs/zkv-attestation-contracts.git")
-repo_branches=("$zkverify_version" "$nh_attestation_bot_branch" "$zkv_attestation_contracts_branch")
+repo_urls=("https://github.com/HorizenLabs/zkVerify.git" "https://github.com/HorizenLabs/NH-attestation-bot.git" "https://github.com/HorizenLabs/zkv-attestation-contracts.git" "https://github.com/zkVerify/zkverify-aggregation.git")
+repo_branches=("$zkverify_version" "$nh_attestation_bot_branch" "$zkv_attestation_contracts_branch" "$zkverify_aggregation_branch")
 repo_count=${#repo_names[@]}
 
 function check_docker_hub_image() {
