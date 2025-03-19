@@ -1,3 +1,4 @@
+import "@polkadot/api-augment";
 import { ApiPromise, WsProvider, Keyring } from '@polkadot/api';
 import { cryptoWaitReady } from '@polkadot/util-crypto';
 import { walletPool } from "../../../../utils/wallets/walletPool";

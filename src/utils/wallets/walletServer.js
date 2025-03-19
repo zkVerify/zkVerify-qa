@@ -30,8 +30,9 @@ fastify.get('/wallet', async (request, reply) => {
         const timeout = setTimeout(() => {
             const index = requestQueue.indexOf(resolve);
             if (index !== -1) requestQueue.splice(index, 1);
-            reject(reply.code(408).send({ error: "Wallet request timed out" }));
-        }, 60000);
+            reply.code(408).send({ error: "Wallet request timed out" });
+            reject(new Error("Wallet request timed out"));
+        }, 120000);
 
         mutex.runExclusive(async () => {
             if (wallets.size > 0) {
@@ -39,12 +40,9 @@ fastify.get('/wallet', async (request, reply) => {
                 wallets.delete(key);
                 clearTimeout(timeout);
                 return resolve(reply.send({ key, wallet }));
+            } else {
+                requestQueue.push(resolve);
             }
-
-            requestQueue.push((wallet) => {
-                clearTimeout(timeout);
-                resolve(reply.send(wallet));
-            });
         });
     });
 });
