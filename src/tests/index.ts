@@ -27,12 +27,13 @@ export const runVerifyTest = async (
 ) => {
     let seedPhrase: string | undefined;
     let envVar: string | undefined;
+    let accountAddress: string | undefined;
 
     try {
         [envVar, seedPhrase] = await walletPool.acquireWallet();
         logTestDetails(proofOptions, "verification test", version);
 
-        const accountAddress = await session.addAccount(seedPhrase);
+        accountAddress = await session.addAccount(seedPhrase);
         const { proof, vk } = loadProofAndVK(proofOptions, version);
 
         await performVerifyTransaction(
@@ -50,7 +51,10 @@ export const runVerifyTest = async (
         console.error(`Error during runVerifyTest (${envVar}) for ${proofOptions.proofType}:`, error);
         throw error;
     } finally {
+        console.log(`[COMPLETED] ${accountAddress} ${proofOptions.proofType} with library ${proofOptions.library} with curve ${proofOptions.curve}`)
+        console.log(`envVar is ${envVar}`);
         if (envVar) {
+            await session.removeAccount(seedPhrase);
             await walletPool.releaseWallet(envVar);
         }
     }
@@ -63,12 +67,13 @@ export const runVKRegistrationTest = async (
 ) => {
     let seedPhrase: string | undefined;
     let envVar: string | undefined;
+    let accountAddress: string | undefined;
 
     try {
         [envVar, seedPhrase] = await walletPool.acquireWallet();
         logTestDetails(proofOptions, "VK registration");
 
-        const accountAddress = await session.addAccount(seedPhrase);
+        accountAddress = await session.addAccount(seedPhrase);
         const { proof, vk } = loadProofAndVK(proofOptions, version);
 
         await performVKRegistrationAndVerification(
@@ -84,7 +89,9 @@ export const runVKRegistrationTest = async (
         console.error(`Error during runVKRegistrationTest (${envVar}) for ${proofOptions.proofType}:`, error);
         throw error;
     } finally {
+        console.log(`[COMPLETED] ${accountAddress} ${proofOptions.proofType} with library ${proofOptions.library} with curve ${proofOptions.curve}`)
         if (envVar) {
+            await session.removeAccount(seedPhrase);
             await walletPool.releaseWallet(envVar);
         }
     }
