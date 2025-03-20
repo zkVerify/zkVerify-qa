@@ -1,73 +1,70 @@
 const Fastify = require('fastify');
 const { Mutex } = require('async-mutex');
 const { createAndFundLocalTestWallets, localWalletData } = require('./localWallets');
+require('dotenv').config();
 
 const fastify = Fastify();
-const wallets = new Map();
+const availableWallets = new Map();
+const inUseWallets = new Map();
 const requestQueue = [];
 const mutex = new Mutex();
 
 async function initializeWallets() {
-    if (process.env.LOCAL_NODE === 'true') {
-        console.log("Generating and funding local test wallets...");
-        await createAndFundLocalTestWallets();
-        console.log("Local wallets created successfully:", localWalletData.seedPhrases);
-
-        localWalletData.seedPhrases.forEach((seed, index) => {
-            const key = `SEED_PHRASE_${index + 1}`;
-            wallets.set(key, seed);
-        });
-    } else {
-        console.log("Loading wallets from environment variables...");
-        Object.entries(process.env)
-            .filter(([key]) => key.startsWith('SEED_PHRASE'))
-            .forEach(([key, seed]) => wallets.set(key, seed));
+    try {
+        if (process.env.LOCAL_NODE === 'true') {
+            await createAndFundLocalTestWallets();
+            localWalletData.seedPhrases.forEach((seed, index) => {
+                const key = `SEED_PHRASE_${index + 1}`;
+                availableWallets.set(key, seed);
+            });
+        } else {
+            Object.entries(process.env)
+                .filter(([key]) => key.startsWith('SEED_PHRASE'))
+                .forEach(([key, seed]) => availableWallets.set(key, seed));
+        }
+    } catch (error) {
+        console.error("Failed to initialize wallets:", error);
+        process.exit(1);
     }
 }
 
 fastify.get('/wallet', async (request, reply) => {
-    return new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => {
-            const index = requestQueue.indexOf(resolve);
-            if (index !== -1) requestQueue.splice(index, 1);
-            reply.code(408).send({ error: "Wallet request timed out" });
-            reject(new Error("Wallet request timed out"));
-        }, 120000);
-
-        mutex.runExclusive(async () => {
-            if (wallets.size > 0) {
-                const [key, wallet] = wallets.entries().next().value;
-                wallets.delete(key);
-                clearTimeout(timeout);
-                return resolve(reply.send({ key, wallet }));
-            } else {
-                requestQueue.push(resolve);
-            }
-        });
-    });
+    return mutex.runExclusive(async () => {
+        if (availableWallets.size > 0) {
+            const [key, wallet] = availableWallets.entries().next().value;
+            availableWallets.delete(key);
+            inUseWallets.set(key, wallet);
+            return { key, wallet, available: true };
+        }
+        requestQueue.push(request.id);
+        return { available: false, queuePosition: requestQueue.indexOf(request.id) };
+    }).then(result => reply.send(result));
 });
 
 fastify.post('/release', async (request, reply) => {
     const { key } = request.body;
-    if (!key) {
-        return reply.code(400).send({ error: "Invalid request, missing key" });
+    if (!key || !inUseWallets.has(key)) {
+        return reply.code(400).send({ error: "Invalid request or wallet not in use" });
     }
 
-    await mutex.runExclusive(() => {
-        if (requestQueue.length > 0) {
-            const resolve = requestQueue.shift();
-            if (resolve) {
-                return resolve({ key, wallet: wallets.get(key) });
+    await mutex.runExclusive(async () => {
+        const wallet = inUseWallets.get(key);
+        inUseWallets.delete(key);
+
+        function addWallet(){
+            availableWallets.set(key, wallet);
+            if(requestQueue.length > 0){
+                requestQueue.shift();
             }
         }
-        wallets.set(key, process.env[key] || localWalletData.seedPhrases[parseInt(key.replace("SEED_PHRASE_", ""), 10) - 1]);
-    });
+        setTimeout(addWallet, 0);
 
-    reply.send({ success: true });
+        reply.send({ success: true });
+    });
 });
 
 initializeWallets().then(() => {
-    fastify.listen({ port: 3001 }, () => console.log("Wallet API running on port 3001"));
+    fastify.listen({ port: 3001 }, () => {});
 }).catch((error) => {
     console.error("Failed to initialize wallets:", error);
     process.exit(1);

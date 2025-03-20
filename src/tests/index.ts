@@ -52,10 +52,11 @@ export const runVerifyTest = async (
         throw error;
     } finally {
         console.log(`[COMPLETED] ${accountAddress} ${proofOptions.proofType} with library ${proofOptions.library} with curve ${proofOptions.curve}`)
-        console.log(`envVar is ${envVar}`);
-        if (envVar) {
-            await session.removeAccount(seedPhrase);
+        if (envVar !== undefined) {
+            await session.removeAccount(accountAddress);
             await walletPool.releaseWallet(envVar);
+        } else {
+            console.error(`Unable to release wallet at end of test.`);
         }
     }
 };
@@ -90,8 +91,8 @@ export const runVKRegistrationTest = async (
         throw error;
     } finally {
         console.log(`[COMPLETED] ${accountAddress} ${proofOptions.proofType} with library ${proofOptions.library} with curve ${proofOptions.curve}`)
-        if (envVar) {
-            await session.removeAccount(seedPhrase);
+        if (envVar !== undefined) {
+            await session.removeAccount(accountAddress);
             await walletPool.releaseWallet(envVar);
         }
     }
@@ -191,4 +192,3 @@ export const runAllVKRegistrationTests = async (
         }
     }
 };
-
