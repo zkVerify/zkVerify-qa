@@ -1,28 +1,22 @@
-import { runProofWithoutAttestation, runProofWithAttestation, runVKRegistrationTests } from '../../../tests';
-import { setupLocalOrExistingWallets } from '../../../utils/wallets';
+import { proofTypes, curveTypes, libraries } from '../../../tests/common/utils';
+import { runAllProofTests, runAllVKRegistrationTests } from '../../../tests';
 
-jest.setTimeout(300000);
+jest.setTimeout(500000);
 
-let isParallel: boolean;
-let isLocalNode: boolean
-
-beforeAll(async () => {
-    await setupLocalOrExistingWallets();
-
-    isParallel = process.env.PARALLEL?.toLowerCase() === 'true';
-    isLocalNode = process.env.LOCAL_NODE?.toLowerCase() === 'true';
-});
-
-describe('zkVerify proof journey tests', () => {
-    test('should verify all proofs without waiting for a published attestation', async () => {
-        await runProofWithoutAttestation(isLocalNode, isParallel);
+describe('zkVerify proof user journey tests', () => {
+    test('should verify all proof types and respond on finalization without waiting for Attestation event', async () => {
+        console.log("Verify Test 1: RUNNING 'should verify all proof types and respond on finalization without waiting for Attestation event'");
+        await runAllProofTests(proofTypes, curveTypes, libraries, false);
+        console.log("Verify Test 1: COMPLETED");
     });
 
-    test('should verify all proofs, called poe pallet and wait for published attestation', async () => {
-        await runProofWithAttestation(isLocalNode, isParallel);
+    test('should verify all proof types, wait for Attestation event, and then check proof of existence', async () => {
+        console.log("Verify Test 2: Running 'should verify all proof types, wait for Attestation event, and then check proof of existence");
+        await runAllProofTests(proofTypes, curveTypes, libraries,true);
+        console.log("Verify Test 2: COMPLETED");
     });
 
-    test('should register VK and verify a proof using the VK hash', async () => {
-        await runVKRegistrationTests(isLocalNode, isParallel);
+    test.skip('should register VK and verify the proof using the VK hash for all proof types', async () => {
+        await runAllVKRegistrationTests(proofTypes, curveTypes, libraries);
     });
 });

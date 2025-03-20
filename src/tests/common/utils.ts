@@ -1,32 +1,50 @@
-import path from 'path';
-import fs from 'fs';
-import { ProofType, zkVerifySession, VerifyTransactionInfo, VKRegistrationTransactionInfo, TransactionInfo, TransactionStatus } from 'zkverifyjs';
-import { EventResults, handleCommonEvents, handleEventsWithAttestation } from './eventHandlers';
+import {
+    zkVerifySession,
+    ProofType,
+    TransactionInfo,
+    TransactionStatus,
+    VerifyTransactionInfo,
+    VKRegistrationTransactionInfo, CurveType, Library, ProofOptions
+} from 'zkverifyjs';
+import {
+    handleCommonEvents,
+    handleEventsWithAttestation,
+    EventResults,
+} from './eventHandlers';
+import path from "path";
+import fs from "fs";
 
 export interface ProofData {
     proof: any;
     publicSignals: any;
-    vk: string;
+    vk?: string;
 }
 
-export const loadProofData = (proofType: ProofType, curve?: string): ProofData => {
-    const fileName = curve ? `${proofType}_${curve}` : proofType;
+export const proofTypes = Object.keys(ProofType).map((key) => ProofType[key as keyof typeof ProofType]);
+export const curveTypes = Object.keys(CurveType).map((key) => CurveType[key as keyof typeof CurveType]);
+export const libraries = Object.keys(Library).map((key) => Library[key as keyof typeof Library]);
+
+export const loadProofData = (proofOptions: ProofOptions, version?: string): ProofData => {
+    const { proofType, curve, library } = proofOptions;
+
+    const fileName = [proofType, version?.toLowerCase(), library, curve].filter(Boolean).join('_');
     const dataPath = path.join(__dirname, 'data', `${fileName}.json`);
-    const data = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
 
-    let vk: string;
-    if (proofType === ProofType.ultraplonk) {
-        const vkPath = path.join(__dirname, 'data', 'ultraplonk_vk.bin');
-        vk = fs.readFileSync(vkPath).toString('hex');
-    } else {
-        vk = data.vk;
+    return JSON.parse(fs.readFileSync(dataPath, 'utf8'));
+};
+
+export const loadVerificationKey = (proofOptions: ProofOptions, version?: string): string => {
+    const { proofType, curve, library } = proofOptions;
+
+    const fileName = [proofType, version?.toLowerCase(), library, curve].filter(Boolean).join('_');
+    const dataPath = path.join(__dirname, 'data', `${fileName}.json`);
+
+    const proofData: ProofData = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
+
+    if (!proofData.vk) {
+        throw new Error(`Verification key not found in file: ${dataPath}`);
     }
-
-    return {
-        proof: data.proof,
-        publicSignals: data.publicSignals,
-        vk,
-    };
+    return proofData.vk;
 };
 
 export const validateEventResults = (eventResults: EventResults, expectAttestation: boolean): void => {
@@ -42,6 +60,131 @@ export const validateEventResults = (eventResults: EventResults, expectAttestati
     }
     expect(eventResults.attestationBeforeExpectedEmitted).toBe(false);
     expect(eventResults.attestationMissedEmitted).toBe(false);
+};
+
+export const performVerifyTransaction = async (
+    session: zkVerifySession,
+    accountAddress: string,
+    proofOptions: ProofOptions,
+    proof: any,
+    publicSignals: any,
+    vk: string,
+    withAttestation: boolean,
+    validatePoe: boolean = false,
+    version?: string
+): Promise<{ eventResults: EventResults; transactionInfo: VerifyTransactionInfo }> => {
+    try {
+        console.log(
+            `[IN PROGRESS] ${accountAddress} ${proofOptions.proofType}` +
+            (version ? `:${version}` : '') +
+            (proofOptions.library ? ` with library: ${proofOptions.library}` : '') +
+            (proofOptions.curve ? ` with curve: ${proofOptions.curve}` : '')
+        );
+
+        const verifyTransaction = async () => {
+            const verifier = session.verify(accountAddress)[proofOptions.proofType](
+                proofOptions.library,
+                proofOptions.curve
+            );
+            const verify = withAttestation ? verifier.waitForPublishedAttestation() : verifier;
+
+            const { events, transactionResult } = await verify.execute({
+                proofData: {
+                    proof: proof,
+                    publicSignals: publicSignals,
+                    vk: vk,
+                    version: version
+                },
+            });
+
+            const eventResults = withAttestation
+                ? handleEventsWithAttestation(events, proofOptions.proofType, 'verify')
+                : handleCommonEvents(events, proofOptions.proofType, 'verify');
+
+            console.log(
+                `[RESULT RECEIVED] ${accountAddress} ${proofOptions.proofType}` +
+                (version ? `:${version}` : '') +
+                ` Transaction result received. Validating...`
+            );
+
+            const transactionInfo: VerifyTransactionInfo = await transactionResult;
+            validateVerifyTransactionInfo(transactionInfo, proofOptions.proofType, withAttestation);
+            validateEventResults(eventResults, withAttestation);
+
+            if (validatePoe) {
+                await validatePoE(session, transactionInfo.attestationId!, transactionInfo.leafDigest!);
+            }
+
+            return { eventResults, transactionInfo };
+        };
+
+        return await retryWithDelay(verifyTransaction);
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+
+        console.error(
+            `[ERROR] Account: ${accountAddress}, ProofType: ${proofOptions.proofType}` +
+            (version ? `:${version}` : ''),
+            error
+        );
+
+        throw new Error(`Failed to execute transaction. See logs for details: ${errorMessage}`);
+    }
+};
+
+export const performVKRegistrationAndVerification = async (
+    session: zkVerifySession,
+    accountAddress: string,
+    proofOptions: ProofOptions,
+    proof: any,
+    publicSignals: any,
+    vk: string,
+    version?: string
+): Promise<void> => {
+    console.log(
+        `${accountAddress} ${proofOptions.proofType} Executing VK registration with library: ${proofOptions.library}, curve: ${proofOptions.curve}...`
+    );
+
+    const { events: registerEvents, transactionResult: registerTransactionResult } =
+        await session
+            .registerVerificationKey(accountAddress)[proofOptions.proofType](
+            proofOptions.library,
+            proofOptions.curve
+        )
+            .execute(vk);
+
+    const registerResults = handleCommonEvents(
+        registerEvents,
+        proofOptions.proofType,
+        'vkRegistration'
+    );
+
+    const vkTransactionInfo: VKRegistrationTransactionInfo = await registerTransactionResult;
+    validateVKRegistrationTransactionInfo(vkTransactionInfo, proofOptions.proofType);
+    validateEventResults(registerResults, false);
+
+    console.log(
+        `${proofOptions.proofType} Executing verification using registered VK with library: ${proofOptions.library}, curve: ${proofOptions.curve}...`
+    );
+
+    const { events: verifyEvents, transactionResult: verifyTransactionResult } =
+        await session
+            .verify(accountAddress)[proofOptions.proofType](proofOptions.library, proofOptions.curve)
+            .withRegisteredVk()
+            .execute({
+                proofData: {
+                    proof: proof,
+                    publicSignals: publicSignals,
+                    vk: vkTransactionInfo.statementHash!,
+                    version: version
+                },
+            });
+
+    const verifyResults = handleCommonEvents(verifyEvents, proofOptions.proofType, 'verify');
+
+    const verifyTransactionInfo: VerifyTransactionInfo = await verifyTransactionResult;
+    validateVerifyTransactionInfo(verifyTransactionInfo, proofOptions.proofType, false);
+    validateEventResults(verifyResults, false);
 };
 
 export const validateTransactionInfo = (
@@ -61,15 +204,15 @@ export const validateTransactionInfo = (
 
 export const validateVerifyTransactionInfo = (
     transactionInfo: VerifyTransactionInfo,
-    proofType: ProofType,
+    expectedProofType: string,
     expectAttestation: boolean
 ): void => {
-    validateTransactionInfo(transactionInfo, proofType);
+    validateTransactionInfo(transactionInfo, expectedProofType);
 
     expect(transactionInfo.attestationId).not.toBeNull();
     expect(transactionInfo.leafDigest).not.toBeNull();
 
-    if (expectAttestation) {
+    if(expectAttestation) {
         expect(transactionInfo.attestationConfirmed).toBeTruthy();
         expect(transactionInfo.attestationEvent).toBeDefined();
         expect(transactionInfo.attestationEvent!.id).toBeDefined();
@@ -82,9 +225,9 @@ export const validateVerifyTransactionInfo = (
 
 export const validateVKRegistrationTransactionInfo = (
     transactionInfo: VKRegistrationTransactionInfo,
-    proofType: ProofType
+    expectedProofType: string
 ): void => {
-    validateTransactionInfo(transactionInfo, proofType);
+    validateTransactionInfo(transactionInfo, expectedProofType);
     expect(transactionInfo.statementHash).toBeDefined();
 };
 
@@ -102,98 +245,37 @@ export const validatePoE = async (
     expect(proofDetails.leaf).toBeDefined();
 };
 
-export const performVerifyTransaction = async (
-    seedPhrase: string,
-    proofType: ProofType,
-    proof: any,
-    publicSignals: any,
-    vk: string,
-    withAttestation: boolean,
-    validatePoe: boolean = false,
-    curve?: string
-): Promise<{ eventResults: EventResults, transactionInfo: VerifyTransactionInfo }> => {
-    let session;
-    try {
-        session = await zkVerifySession.start().Custom(process.env.WEBSOCKET).withAccount(seedPhrase);
-    } catch (error) {
-        console.error(`Failed to start session for ${proofType}${curve ? `:${curve}` : ''}:`, error);
-        throw error;
-    }
-
-    const verifier = session.verify()[proofType]();
-    const verify = withAttestation ? verifier.waitForPublishedAttestation() : verifier;
-
-    let transactionInfo: VerifyTransactionInfo;
-    let eventResults: EventResults;
-
-    try {
-        console.log(`${proofType}${curve ? `:${curve}` : ''} Executing transaction...`);
-        const { events, transactionResult } = await verify.execute({ proofData: {
-            proof: proof,
-            publicSignals: publicSignals,
-            vk: vk
-            }
-        });
-
-        eventResults = withAttestation
-            ? handleEventsWithAttestation(events, proofType, 'verify')
-            : handleCommonEvents(events, proofType, 'verify');
-
-        transactionInfo = await transactionResult;
-
-        console.log(`${proofType}${curve ? `:${curve}` : ''} Transaction result received. Validating result data...`);
-        await validateVerifyTransactionInfo(transactionInfo, proofType, withAttestation);
-        await validateEventResults(eventResults, withAttestation);
-
-        if (validatePoe) {
-            await validatePoE(session, transactionInfo.attestationId!, transactionInfo.leafDigest!);
-        }
-
-        console.log(`${proofType}${curve ? `:${curve}` : ''} Validation Checks Completed.`);
-    } catch (error) {
-        console.error(`${proofType}${curve ? `:${curve}` : ''} Validation failed:`, error);
-        throw error;
-    } finally {
-        await session.close();
-    }
-
-    return { eventResults, transactionInfo };
+export const loadProofAndVK = (proofOptions: ProofOptions, version?: string) => {
+    return {
+        proof: loadProofData(proofOptions, version),
+        vk: loadVerificationKey(proofOptions, version),
+    };
 };
 
-export const performVKRegistrationAndVerification = async (
-    seedPhrase: string,
-    proofType: ProofType,
-    proof: any,
-    publicSignals: any,
-    vk: string
-): Promise<void> => {
-    const session = await zkVerifySession.start().Custom(process.env.WEBSOCKET).withAccount(seedPhrase);
+const retryWithDelay = async <T>(
+    fn: () => Promise<T>,
+    retries: number = 5,
+    delayMs: number = 5000
+): Promise<T> => {
+    let attempt = 0;
+    while (attempt < retries) {
+        try {
+            return await fn();
+        } catch (error) {
+            attempt++;
+            const errorMessage = error instanceof Error ? error.message : String(error);
 
-    console.log(`${proofType} Executing VK registration...`);
-    const { events: registerEvents, transactionResult: registerTransactionResult } = await session.registerVerificationKey()[proofType]().execute(vk);
+            if (!errorMessage.includes("Priority is too low")) {
+                throw error;
+            }
 
-    const registerResults = handleCommonEvents(registerEvents, proofType, 'vkRegistration');
+            if (attempt >= retries) {
+                throw error;
+            }
 
-    const vkTransactionInfo: VKRegistrationTransactionInfo = await registerTransactionResult;
-    console.log(`${proofType} VK Registration result received. Validating result data...`);
-    await validateVKRegistrationTransactionInfo(vkTransactionInfo, proofType);
-    await validateEventResults(registerResults, false);
-    console.log(`${proofType} VK Registration Validation Checks Completed.`);
-
-    console.log(`${proofType} Executing verification using registered VK...`);
-    const { events: verifyEvents, transactionResult: verifyTransactionResult } = await session.verify()[proofType]().withRegisteredVk().execute({
-        proofData: {
-            proof: proof,
-            publicSignals: publicSignals,
-            vk: vkTransactionInfo.statementHash!
+            console.warn(`Retrying after error: ${errorMessage}. Attempt ${attempt} of ${retries}`);
+            await new Promise(resolve => setTimeout(resolve, delayMs));
         }
-    });
-    const verifyResults = handleCommonEvents(verifyEvents, proofType, 'verify');
-
-    const verifyTransactionInfo: VerifyTransactionInfo = await verifyTransactionResult;
-    console.log(`${proofType} Verify with Registered VK result received. Validating result data...`);
-    await validateVerifyTransactionInfo(verifyTransactionInfo, proofType, false);
-    await validateEventResults(verifyResults, false);
-    console.log(`${proofType} Verify Using Registered VK Validation Checks Completed.`);
-    await session.close();
+    }
+    throw new Error("Retries exhausted");
 };

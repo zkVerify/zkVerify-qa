@@ -1,7 +1,7 @@
 const path = require('path');
 
 const config = {
-  rootDir: path.resolve(__dirname, 'src'),
+  rootDir: path.resolve(__dirname),
   testTimeout: 120000,
   reporters: [
     "default",
@@ -13,7 +13,7 @@ const config = {
     }
     ],
   ],
-  roots: ['<rootDir>/rpc-tests'],
+  roots: ['<rootDir>/src/rpc-tests'],
   testMatch: [
     '**/?(*.)+(spec|test).[tj]s?(x)',
   ],
@@ -23,6 +23,8 @@ const config = {
   },
   preset: 'ts-jest',
   testEnvironment: 'node',
+  globalSetup: '<rootDir>/jest.setup.js',
+  globalTeardown: '<rootDir>/jest.teardown.js',
 };
 
 function getReportPath(testEnv) {

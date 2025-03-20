@@ -65,6 +65,8 @@ docker login
 
 ### Run locally
 
+- Ensure the `./setup.sh --fetch-latest` has been run, which pulls down the latest required repositories to the `/services` directory.
+
 1. Start the system:
 
    ```bash

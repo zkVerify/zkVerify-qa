@@ -20,15 +20,15 @@ npm run test:rpc:testnet
 
 Build:
 ```sh
-docker-compose build
+docker-compose -f src/rpc-tests/docker-compose.yml build --no-cache
 ```
 Local Run:
 ```sh
-docker-compose run -e TEST_ENV=local -e RPC_URL=http://local-rpc-url -e WEBSOCKET=ws://local-websocket -e SEED_PHRASE=<local-private-key rpc-tests>
+docker-compose run -e TEST_ENV=local -e RPC_URL=http://local-rpc-url -e WEBSOCKET=ws://local-websocket
 ```
-Testnet:
+Testnet (Make sure if running locally that you have a .env file in top level with all values / secrets set):
 ```sh
-docker-compose run rpc-tests -e SEED_PHRASE=<testnet-private-key rpc-tests>
+docker-compose -f src/rpc-tests/docker-compose.yml --env-file ../.env up
 ```
 
 ### Running test for a specific namespace
