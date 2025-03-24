@@ -1,5 +1,8 @@
 const Fastify = require('fastify');
 const { Mutex } = require('async-mutex');
+const { Keyring } = require('@polkadot/api');
+const { cryptoWaitReady } = require('@polkadot/util-crypto');
+
 const { createAndFundLocalTestWallets, localWalletData } = require('./localWallets');
 require('dotenv').config();
 
@@ -10,18 +13,65 @@ const requestQueue = [];
 const mutex = new Mutex();
 
 async function initializeWallets() {
+    await cryptoWaitReady();
+    const keyring = new Keyring({ type: 'sr25519' });
+
+    const invalidKeys = [];
+    let total = 0;
+    let valid = 0;
+
     try {
         if (process.env.LOCAL_NODE === 'true') {
             await createAndFundLocalTestWallets();
+
             localWalletData.seedPhrases.forEach((seed, index) => {
-                const key = `SEED_PHRASE_${index + 1}`;
-                availableWallets.set(key, seed);
+                total++;
+
+                try {
+                    keyring.addFromUri(seed);
+                    const key = `SEED_PHRASE_${index + 1}`;
+                    availableWallets.set(key, seed);
+                    valid++;
+                } catch (err) {
+                    invalidKeys.push(`LOCAL_WALLET_${index + 1}`);
+                }
             });
         } else {
             Object.entries(process.env)
                 .filter(([key]) => key.startsWith('SEED_PHRASE'))
-                .forEach(([key, seed]) => availableWallets.set(key, seed));
+                .forEach(([key, seed]) => {
+                    total++;
+
+                    const words = seed.trim().split(/\s+/);
+                    if (words.length !== 12) {
+                        console.error(`❌ Invalid seed format for ${key}: does not contain exactly 12 words`);
+                        invalidKeys.push(key);
+                        return;
+                    }
+
+                    try {
+                        keyring.addFromUri(seed);
+                        availableWallets.set(key, seed);
+                        valid++;
+                    } catch (err) {
+                        invalidKeys.push(key);
+                    }
+                });
         }
+
+        console.log(`Wallet Pool Initialized`);
+        console.log(`- Total Wallets Found: ${total}`);
+        console.log(`- ✅ Valid Wallets: ${valid}`);
+        console.log(`- ❌ Invalid Wallets: ${invalidKeys.length}`);
+        if (invalidKeys.length > 0) {
+            console.log(`- Invalid Keys: ${invalidKeys.join(', ')}`);
+        }
+
+        if (valid === 0) {
+            console.error("🚨 No valid wallets available. Shutting down.");
+            process.exit(1);
+        }
+
     } catch (error) {
         console.error("Failed to initialize wallets:", error);
         process.exit(1);
