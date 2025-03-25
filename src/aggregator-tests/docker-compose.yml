@@ -1,0 +1,58 @@
+services:
+
+  local_node:
+    image: horizenlabs/zkverify:${ZKVERIFY_IMAGE_TAG}
+    container_name: "${NODE_NAME}"
+    hostname: "${NODE_NAME}"
+    env_file:
+      - ./services/zkVerify/docker/resources/envs/.env.local
+    ports:
+      - "${NODE_NET_RPC_WS_PORT}:${NODE_NET_RPC_WS_PORT}"
+      - "${NODE_NET_P2P_PORT}:${NODE_NET_P2P_PORT}"
+    expose:
+      - "${NODE_NET_RPC_WS_PORT}"
+    healthcheck:
+      test:
+        [
+          CMD,
+          curl,
+          -H,
+          "Content-Type: application/json",
+          "-d",
+          '{"jsonrpc":"2.0","method":"system_health","params":[],"id":1}',
+          -f,
+          "http://local_node:9944",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  node_alice:
+    image: horizenlabs/zkverify:${ZKVERIFY_IMAGE_TAG}
+    env_file:
+      - ./services/zkVerify/docker/resources/envs/.env.alice
+
+  node_bob:
+    image: horizenlabs/zkverify:${ZKVERIFY_IMAGE_TAG}
+    env_file:
+      - ./services/zkVerify/docker/resources/envs/.env.bob
+    volumes:
+      - ./services/zkVerify/docker/resources/deploy:/data/config
+
+  aggregation-app:
+    build:
+      context: ./services/zkverify-aggregation
+      dockerfile: Dockerfile
+    environment:
+      - AGGREGATOR_PROVIDER_WS=${AGGREGATOR_PROVIDER_WS}
+      - AGGREGATOR_SENDER_CREDENTIALS=${AGGREGATOR_SENDER_CREDENTIALS}
+    env_file:
+      - .env
+    depends_on:
+      local_node:
+        condition: service_healthy
+      node_alice:
+        condition: service_started
+      node_bob:
+        condition: service_started

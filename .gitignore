@@ -17,6 +17,9 @@ src/e2e-tests/services/zkVerify
 src/e2e-tests/services/nh-attestation-bot
 src/e2e-tests/services/zkv-attestation-contracts
 src/e2e-tests/*.tar
+src/aggregator-tests/services/zkVerify
+src/aggregator-tests/services/zkverify-aggregation
+src/aggregator-tests/*.tar
 src/proof-generator/fflonk/circuit/data
 src/proof-generator/groth16/circuit/data
 src/proof-generator/boojum/data
