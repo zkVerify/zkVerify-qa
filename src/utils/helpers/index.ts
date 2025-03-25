@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import { ProofType } from "zkverifyjs";
 
 /**
  * Validate required environment variables.
@@ -15,4 +16,19 @@ export const validateEnvVariables = (variables: string[]): void => {
             throw new Error(`The ${envVar} environment variable has not been set.`);
         }
     });
+};
+
+export const selectVerifyMethod = (session: any, proofType: string): any => {
+    switch (proofType) {
+        case ProofType.groth16:
+            return session.verify().groth16();
+        case ProofType.fflonk:
+            return session.verify().fflonk();
+        case ProofType.risc0:
+            return session.verify().risc0();
+        case ProofType.ultraplonk:
+            return session.verify().ultraplonk();
+        default:
+            throw new Error('Invalid proof type selected');
+    }
 };
