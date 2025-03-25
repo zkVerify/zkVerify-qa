@@ -1,4 +1,4 @@
-import { ZkVerifyEvents, TransactionStatus, ProofType } from 'zkverifyjs';
+import { ZkVerifyEvents, TransactionStatus } from 'zkverifyjs';
 
 export interface EventResults {
     includedInBlockEmitted: boolean;
@@ -13,7 +13,7 @@ export interface EventResults {
 
 export const handleCommonEvents = (
     events: any,
-    expectedProofType: ProofType,
+    expectedProofType: string,
     expectedDataType: 'verify' | 'vkRegistration',
 ): EventResults => {
     const eventResults: EventResults = {
@@ -84,7 +84,7 @@ export const handleCommonEvents = (
 
 export const handleEventsWithAttestation = (
     events: any,
-    expectedProofType: ProofType,
+    expectedProofType: string,
     expectedDataType: 'verify' | 'vkRegistration',
 ): EventResults => {
     const results = handleCommonEvents(events, expectedProofType, expectedDataType);

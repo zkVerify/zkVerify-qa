@@ -35,7 +35,7 @@ fi
 
 # Install Solidity dependencies
 echo "Installing Solidity dependencies..."
-forge install OpenZeppelin/openzeppelin-contracts@v5.1.0 --no-commit
+forge install OpenZeppelin/openzeppelin-contracts@v5.2.0 --no-commit
 
 # Copy contracts to the src directory
 echo "Copying contracts to the src directory..."
@@ -44,11 +44,11 @@ echo "Contracts copied successfully."
 
 # Build contracts
 echo "Building contracts..."
-forge build --contracts src/ZkVerifyAttestation.sol
+forge build --contracts src/ZkVerifyAggregationGlobal.sol
 
 # Compile and deploy contract
 echo "Compiling and deploying contract..."
-ADDRESS=$(forge create ZkVerifyAttestation --rpc-url http://localhost:8545 --private-key $FIRST_PRIVATE_KEY --constructor-args $FIRST_ACCOUNT --json | jq -r '.deployedTo')
+ADDRESS=$(forge create ZkVerifyAggregationGlobal --rpc-url http://localhost:8545 --private-key $FIRST_PRIVATE_KEY --constructor-args $FIRST_ACCOUNT --json | jq -r '.deployedTo')
 
 # Check if deployment was successful
 if [ -z "$ADDRESS" ]; then
