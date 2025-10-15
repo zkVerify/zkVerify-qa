@@ -39,9 +39,9 @@ The `setup.sh` script clones necessary repositories and manages Docker images fo
 -  ```bash
     ./setup.sh --fetch-latest --zkverify-version develop --docker-image-tag 0.5.0
       ```
-      This will first check if a Docker image `horizenlabs/zkverify:0.5.0` exists locally.
+      This will first check if a Docker image `zkverify/relay-node:1.0.0` exists locally.
 
-      If not, it will check Docker Hub for the Docker image `horizenlabs/zkverify:0.5.0`.
+      If not, it will check Docker Hub for the Docker image `zkverify/relay-node:1.0.0`.
       
       If not, it will build a Docker image from the develop branch.
 
@@ -50,7 +50,7 @@ The `setup.sh` script clones necessary repositories and manages Docker images fo
     ./setup.sh --fetch-latest --rebuild --zkverify-version develop --docker-image-tag 0.5.0
    ```
    
-   The `--rebuild` tag will rebuild the Docker image, regardless whether `horizenlab/zkverify:0.5.0` exists locally or on Docker hub.
+   The `--rebuild` tag will rebuild the Docker image, regardless whether `zkverify/relay-node:1.0.0` exists locally or on Docker hub.
 
 ## Docker Setup (Local)
 
