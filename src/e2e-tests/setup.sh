@@ -27,7 +27,7 @@ done
 
 # Repositories
 repo_names=("zkVerify" "nh-attestation-bot" "zkv-attestation-contracts")
-repo_urls=("https://github.com/HorizenLabs/zkVerify.git" "https://github.com/HorizenLabs/NH-attestation-bot.git" "https://github.com/HorizenLabs/zkv-attestation-contracts.git" "https://github.com/zkVerify/zkverify-aggregation.git")
+repo_urls=("https://github.com/zkVerify/zkVerify.git" "https://github.com/HorizenLabs/NH-attestation-bot.git" "https://github.com/HorizenLabs/zkv-attestation-contracts.git" "https://github.com/zkVerify/zkverify-aggregation.git")
 repo_branches=("$zkverify_version" "$nh_attestation_bot_branch" "$zkv_attestation_contracts_branch" "$zkverify_aggregation_branch")
 repo_count=${#repo_names[@]}
 
@@ -145,7 +145,7 @@ done
 
 # If rebuild = 1, build Docker image
 # If rebuild = 0, check Docker hub and local Docker images. Build a docker image if not available
-image_name="horizenlabs/zkverify"
+image_name="zkverify/relay-node"
 
 if [[ "$rebuild" -eq 1 ]]; then
     containers=$(docker ps -a -q --filter ancestor="${image_name}:${docker_image_tag}")

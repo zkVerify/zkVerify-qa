@@ -14,7 +14,7 @@ services:
       - "8545:8545"
 
   local_node:
-    image: horizenlabs/zkverify:${ZKVERIFY_IMAGE_TAG}
+    image: zkverify/relay-node:${ZKVERIFY_IMAGE_TAG}
     container_name: "${NODE_NAME}"
     hostname: "${NODE_NAME}"
     env_file:
@@ -42,12 +42,12 @@ services:
       start_period: 40s
 
   node_alice:
-    image: horizenlabs/zkverify:${ZKVERIFY_IMAGE_TAG}
+    image: zkverify/relay-node:${ZKVERIFY_IMAGE_TAG}
     env_file:
       - ./services/zkVerify/docker/resources/envs/.env.alice
 
   node_bob:
-    image: horizenlabs/zkverify:${ZKVERIFY_IMAGE_TAG}
+    image: zkverify/relay-node:${ZKVERIFY_IMAGE_TAG}
     env_file:
       - ./services/zkVerify/docker/resources/envs/.env.bob
     volumes:
