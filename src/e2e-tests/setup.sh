@@ -26,7 +26,7 @@ while [[ "$#" -gt 0 ]]; do
 done
 
 # Repositories
-repo_names=("zkVerify" "nh-attestation-bot" "zkv-attestation-contracts")
+repo_names=("zkVerify" "nh-attestation-bot" "zkv-attestation-contracts" "zkverify-aggregation")
 repo_urls=("https://github.com/zkVerify/zkVerify.git" "https://github.com/HorizenLabs/NH-attestation-bot.git" "https://github.com/HorizenLabs/zkv-attestation-contracts.git" "https://github.com/zkVerify/zkverify-aggregation.git")
 repo_branches=("$zkverify_version" "$nh_attestation_bot_branch" "$zkv_attestation_contracts_branch" "$zkverify_aggregation_branch")
 repo_count=${#repo_names[@]}
